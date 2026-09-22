@@ -1,0 +1,8 @@
+# Excluir datos pesados de los contenedores locales
+ollama/data/
+n8n/data/
+
+# Archivos del sistema y de VS Code
+.vscode/
+.DS_Store
+Thumbs.db
