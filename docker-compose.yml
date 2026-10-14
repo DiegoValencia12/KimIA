@@ -1,19 +1,52 @@
+
 services:
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: KimIA-n8n
+  mongodb:
+    image: mongo:8
+    container_name: KimIA-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - kimia-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: KimIA-backend
     restart: unless-stopped
     ports:
-      - "5678:5678"
+      - "3000:3000"
     environment:
-      - N8N_HOST=localhost
-      - N8N_PORT=5678
-      - N8N_PROTOCOL=http
-      - GENAI_OLLAMA_HOST=http://ollama:11434
-    volumes:
-      - ./n8n/data:/home/node/.n8n
+      PORT: 3000
+      MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/kimia?authSource=admin
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: qwen3:0.6b
     depends_on:
-      - ollama
+      - mongodb
+    networks:
+      - kimia-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: KimIA-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - kimia-network
 
   ollama:
     image: ollama/ollama:latest
@@ -22,4 +55,36 @@ services:
     ports:
       - "11434:11434"
     volumes:
-      - ./ollama/data:/root/.ollama
+      - ollama_data:/root/.ollama
+    networks:
+      - kimia-network
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: KimIA-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      GENAI_OLLAMA_HOST: http://ollama:11434
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - ollama
+    networks:
+      - kimia-network
+
+
+volumes:
+  mongodb_data:
+  ollama_data:
+    name: kimia_ollama
+  n8n_data:
+
+
+networks:
+  kimia-network:
+    driver: bridge
