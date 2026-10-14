@@ -30,7 +30,7 @@ Verificar servicios
 
 - docker compose ps
 
-- Detener servicios
+Detener servicios
 
 - docker compose down
 
