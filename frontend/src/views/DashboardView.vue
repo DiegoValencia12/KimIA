@@ -1,14 +1,8 @@
-
 <template>
   <main class="dashboard">
     <header class="header">
       <div class="header-left">
-        <button
-          class="menu-button"
-          type="button"
-          aria-label="Abrir menú"
-          @click="menuOpen = !menuOpen"
-        >
+        <button class="menu-button" type="button" aria-label="Abrir menú" @click="menuOpen = !menuOpen">
           <span></span>
           <span></span>
           <span></span>
@@ -23,28 +17,14 @@
     </header>
 
     <Teleport to="body">
-      <div
-        v-if="menuOpen"
-        class="menu-overlay"
-        @click="menuOpen = false"
-      ></div>
+      <div v-if="menuOpen" class="menu-overlay" @click="menuOpen = false"></div>
 
-      <MenuBarComponent
-        v-if="menuOpen"
-        :chats="chats"
-        :active-chat-id="activeChatId"
-        :loading="loadingChats"
-        :error="chatsError"
-        @new-chat="startNewChat"
-        @select-chat="openChat"
-        @click.stop
-      />
+      <MenuBarComponent v-if="menuOpen" :chats="chats" :active-chat-id="activeChatId" :loading="loadingChats"
+        :error="chatsError" @new-chat="startNewChat" @select-chat="openChat" @delete-chat="handleDeleteChat"
+        @click.stop />
     </Teleport>
 
-    <section
-      class="dashboard-content"
-      :class="{ 'conversation-mode': activeChatId }"
-    >
+    <section class="dashboard-content" :class="{ 'conversation-mode': activeChatId }">
       <div v-if="messages.length === 0 && !sending" class="welcome">
         <h1>KIMIA</h1>
 
@@ -55,17 +35,9 @@
         </p>
       </div>
 
-      <div
-        v-else
-        ref="conversationContainer"
-        class="conversation"
-      >
-        <article
-          v-for="(message, index) in messages"
-          :key="message._id || `${message.role}-${index}`"
-          class="message"
-          :class="message.role"
-        >
+      <div v-else ref="conversationContainer" class="conversation">
+        <article v-for="(message, index) in messages" :key="message._id || `${message.role}-${index}`" class="message"
+          :class="message.role">
           <div class="message-label">
             {{ message.role === 'user' ? 'Tú' : 'KIMIA' }}
           </div>
@@ -88,24 +60,12 @@
       </p>
 
       <div class="question-box">
-        <textarea
-          ref="questionInput"
-          v-model="question"
-          placeholder="Pregunta lo que quieras a KIMIA..."
-          rows="1"
-          :disabled="sending || loadingHistory"
-          @input="adjustTextarea"
-          @keydown.enter.exact.prevent="sendMessage"
-          @keydown.enter.shift.exact="insertNewLine"
-        ></textarea>
+        <textarea ref="questionInput" v-model="question" placeholder="Pregunta lo que quieras a KIMIA..." rows="1"
+          :disabled="sending || loadingHistory" @input="adjustTextarea" @keydown.enter.exact.prevent="sendMessage"
+          @keydown.enter.shift.exact="insertNewLine"></textarea>
 
-        <button
-          type="button"
-          class="send-button"
-          :disabled="sending || loadingHistory || !question.trim()"
-          aria-label="Enviar mensaje"
-          @click="sendMessage"
-        >
+        <button type="button" class="send-button" :disabled="sending || loadingHistory || !question.trim()"
+          aria-label="Enviar mensaje" @click="sendMessage">
           <img src="/icons/send.svg" alt="" />
         </button>
       </div>
@@ -134,9 +94,9 @@ import {
   listChats,
   createChat,
   getChatHistory,
-  sendChatMessage
+  sendChatMessage,
+  deleteChat
 } from '@/services/chatService.js'
-
 const route = useRoute()
 const router = useRouter()
 
@@ -192,6 +152,30 @@ const loadChats = async () => {
       `No se pudo cargar el historial: ${error.message}`
   } finally {
     loadingChats.value = false
+  }
+}
+
+const handleDeleteChat = async (chatId) => {
+  pageError.value = ''
+  chatsError.value = ''
+
+  try {
+    await deleteChat(chatId)
+
+    chats.value = chats.value.filter(
+      chat => chat._id !== chatId
+    )
+
+    if (activeChatId.value === chatId) {
+      messages.value = []
+      question.value = ''
+
+      await router.push({ name: 'dashboard' })
+    }
+
+  } catch (error) {
+    pageError.value =
+      `No se pudo eliminar la conversación: ${error.message}`
   }
 }
 
@@ -370,7 +354,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   requestVersion++
 })
-</script> 
+</script>
 
 <style scoped>
 .dashboard {

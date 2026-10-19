@@ -3,6 +3,8 @@ import Chat from '../models/Chat.js'
 import Message from '../models/Message.js'
 import Response from '../models/Response.js'
 
+import { summarizeChat } from '../services/chatMemoryService.js'
+
 const getOllamaConfig = () => ({
   url: (
     process.env.OLLAMA_URL || 'http://localhost:11434'
@@ -28,7 +30,6 @@ export const createChat = async (req, res, next) => {
 export const listChats = async (req, res, next) => {
   try {
     const chats = await Chat.find().sort({ updatedAt: -1 })
-
     res.json(chats)
   } catch (error) {
     next(error)
@@ -79,10 +80,7 @@ export const getChatHistory = async (req, res, next) => {
       }
     })
 
-    res.json({
-      chat,
-      messages: history
-    })
+    res.json({ chat, messages: history })
   } catch (error) {
     next(error)
   }
@@ -107,19 +105,42 @@ export const sendMessage = async (req, res, next) => {
     }
 
     const { url, model } = getOllamaConfig()
+    const userContent = content.trim()
 
     const previousMessages = await Message.find({
       chatId: chat._id
     }).sort({ createdAt: 1 })
 
-    const conversation = [
-      ...previousMessages.map(message => ({
+    const summarizedCount = Math.min(
+      chat.summarizedMessageCount || 0,
+      previousMessages.length
+    )
+
+    const recentMessages = previousMessages
+      .slice(summarizedCount)
+      .filter(message => message.role !== 'system')
+      .map(message => ({
         role: message.role,
         content: message.content
-      })),
+      }))
+
+    const conversation = [
+      {
+        role: 'system',
+        content: [
+          'Eres Kim, un asistente útil.',
+          'Usa el resumen como memoria de esta conversación.',
+          'No inventes datos que no estén disponibles.',
+          'La memoria solo pertenece a este chat.',
+          chat.summary
+            ? `Resumen del chat:\n${chat.summary}`
+            : ''
+        ].filter(Boolean).join('\n\n')
+      },
+      ...recentMessages,
       {
         role: 'user',
-        content: content.trim()
+        content: userContent
       }
     ]
 
@@ -141,19 +162,15 @@ export const sendMessage = async (req, res, next) => {
 
       if (!ollamaResponse.ok) {
         const details = await ollamaResponse.text()
-
         throw new Error(
           `Ollama respondió con HTTP ${ollamaResponse.status}: ${details}`
         )
       }
 
       const data = await ollamaResponse.json()
-      assistantContent = data.message?.content
+      assistantContent = data.message?.content?.trim()
 
-      if (
-        typeof assistantContent !== 'string' ||
-        !assistantContent.trim()
-      ) {
+      if (!assistantContent) {
         throw new Error('Ollama devolvió una respuesta vacía')
       }
     } catch (error) {
@@ -166,23 +183,23 @@ export const sendMessage = async (req, res, next) => {
     const userMessage = await Message.create({
       chatId: chat._id,
       role: 'user',
-      content: content.trim()
+      content: userContent
     })
 
     const assistantMessage = await Message.create({
       chatId: chat._id,
       role: 'assistant',
-      content: assistantContent.trim()
+      content: assistantContent
     })
 
     await Response.create({
       messageId: assistantMessage._id,
-      content: assistantContent.trim(),
+      content: assistantContent,
       model
     })
 
     if (chat.title === 'Nuevo chat') {
-      chat.title = content.trim().slice(0, 60)
+      chat.title = userContent.slice(0, 60)
     }
 
     chat.updatedAt = new Date()
@@ -192,9 +209,64 @@ export const sendMessage = async (req, res, next) => {
       userMessage,
       response: {
         messageId: assistantMessage._id,
-        content: assistantContent.trim(),
+        content: assistantContent,
         model
       }
+    })
+
+    const messagesForSummary = await Message.find({
+      chatId: chat._id
+    }).sort({ createdAt: 1 })
+
+    const newMessageCount =
+      messagesForSummary.length - (chat.summarizedMessageCount || 0)
+
+    if (newMessageCount >= 3) {
+      try {
+        const summary = await summarizeChat(messagesForSummary)
+
+        chat.summary = summary
+        chat.summarizedMessageCount = messagesForSummary.length
+        await chat.save()
+      } catch (error) {
+        console.error('No se pudo actualizar la memoria del chat:', error)
+      }
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
+
+export const deleteChat = async (req, res, next) => {
+  try {
+    const chat = await Chat.findById(req.params.chatId)
+
+    if (!chat) {
+      return res.status(404).json({
+        error: 'Chat no encontrado'
+      })
+    }
+
+    const messages = await Message.find({
+      chatId: chat._id
+    }).select('_id')
+
+    const messageIds = messages.map(message => message._id)
+
+    await Response.deleteMany({
+      messageId: { $in: messageIds }
+    })
+
+    await Message.deleteMany({
+      chatId: chat._id
+    })
+
+    await Chat.findByIdAndDelete(chat._id)
+
+    return res.status(200).json({
+      message: 'Chat eliminado correctamente',
+      chatId: chat._id
     })
   } catch (error) {
     next(error)

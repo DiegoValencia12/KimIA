@@ -45,3 +45,14 @@ export function sendChatMessage(chatId, content) {
     }
   )
 }
+
+
+export function deleteChat(chatId) {
+  return request(`/chats/${encodeURIComponent(chatId)}`, {
+    method: 'DELETE'
+  })
+}
+
+
+
+

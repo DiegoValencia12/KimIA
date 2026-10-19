@@ -1,3 +1,4 @@
+
 import mongoose from 'mongoose'
 
 const chatSchema = new mongoose.Schema(
@@ -7,10 +8,22 @@ const chatSchema = new mongoose.Schema(
       default: 'Nuevo chat',
       trim: true
     },
+
     userId: {
       type: String,
       default: 'local-user',
       index: true
+    },
+
+    summary: {
+      type: String,
+      default: ''
+    },
+
+    summarizedMessageCount: {
+      type: Number,
+      default: 0,
+      min: 0
     }
   },
   {
