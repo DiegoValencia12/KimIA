@@ -1,58 +1,117 @@
 {
-  "name": "KimIA",
+  "name": "My workflow",
   "nodes": [
     {
       "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.message }}",
         "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
-      "typeVersion": 1.5,
-      "position": [
-        32,
-        0
-      ],
-      "id": "24e89b7e-76a2-4955-ab95-3b96ddd3db73",
-      "name": "When chat message received",
-      "webhookId": "b666f8d8-3412-4daf-9d92-a8d5817e8692"
-    },
-    {
-      "parameters": {
-        "options": {
-          "systemMessage": "You are a helpful assistant"
-        }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        416,
+        384,
         0
       ],
-      "id": "2780b2ca-f38e-4cc9-8707-8c7b86971092",
+      "id": "87845361-ff78-49e9-9aea-7ccdbd3cce20",
       "name": "AI Agent"
     },
     {
       "parameters": {
-        "endpointUrl": "http://localhost:5678/mcp/fe8220b5-58cd-43b5-99d9-2c7957eeb5ef",
+        "model": "qwen3:0.6b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        384,
+        208
+      ],
+      "id": "b75553b8-7097-447c-9ceb-d741af5875eb",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "pt2NQiNS4cHzShHi",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        480,
+        416
+      ],
+      "id": "a437480e-d53b-418f-8c3f-f817e451ee1d",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.4,
       "position": [
-        560,
+        528,
         224
       ],
-      "id": "279b8ac2-e278-45ee-a9a3-e336d723cb4f",
+      "id": "ccffd2ca-0021-4787-9d3b-843bc8462b29",
       "name": "MCP Client"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "KimIA/chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        176,
+        0
+      ],
+      "id": "582c2dc8-7241-46c3-95e6-05342c7bc992",
+      "name": "Webhook",
+      "webhookId": "95062f5c-397e-4da9-9f8a-82f5ee6d8ae0"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"response\": \"{{ $json.output }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        752,
+        0
+      ],
+      "id": "99fced8b-6319-4d29-944f-dfd9ef00f0fb",
+      "name": "Respond to Webhook"
     }
   ],
   "pinData": {},
   "connections": {
-    "When chat message received": {
-      "main": [
+    "Ollama Chat Model": {
+      "ai_languageModel": [
         [
           {
             "node": "AI Agent",
-            "type": "main",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
             "index": 0
           }
         ]
@@ -68,6 +127,28 @@
           }
         ]
       ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -75,12 +156,12 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "ded626f0-ef20-438c-b4c8-d5ddcb1ef243",
+  "versionId": "e16053e3-0ad4-4825-932a-21c318a23995",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "888675303af61d56d149e23fde4833f4ceb9584e651a9e518a6c2c516b981f5e"
+    "instanceId": "a842a438116cb5d2cea416b9f5eee5a1996eee7ea9237b4bd798e2607f919c93"
   },
   "nodeGroups": [],
-  "id": "d5XrjO4E1I7foQVB",
+  "id": "xtuutkzG7Uh55qib",
   "tags": []
 }
