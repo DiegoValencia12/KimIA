@@ -2,6 +2,7 @@
 import express from 'express'
 
 import chatsRoutes from './routes/chats.routes.js'
+import authRoutes from './routes/auth.routes.js'
 import { getOllamaConfig, useN8nAgent } from './config/ollama.js'
 
 const app = express()
@@ -49,6 +50,7 @@ app.get('/api/health', (req, res) => {
 })
 
 app.use('/api/chats', chatsRoutes)
+app.use('/api/auth', authRoutes)
 
 app.use((req, res) => {
   res.status(404).json({
