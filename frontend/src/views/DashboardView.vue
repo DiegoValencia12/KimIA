@@ -1,8 +1,14 @@
+```vue
 <template>
   <main class="dashboard">
     <header class="header">
       <div class="header-left">
-        <button class="menu-button" type="button" aria-label="Abrir menú" @click="menuOpen = !menuOpen">
+        <button
+          class="menu-button"
+          type="button"
+          aria-label="Abrir menú"
+          @click="menuOpen = !menuOpen"
+        >
           <span></span>
           <span></span>
           <span></span>
@@ -17,15 +23,33 @@
     </header>
 
     <Teleport to="body">
-      <div v-if="menuOpen" class="menu-overlay" @click="menuOpen = false"></div>
+      <div
+        v-if="menuOpen"
+        class="menu-overlay"
+        @click="menuOpen = false"
+      ></div>
 
-      <MenuBarComponent v-if="menuOpen" :chats="chats" :active-chat-id="activeChatId" :loading="loadingChats"
-        :error="chatsError" @new-chat="startNewChat" @select-chat="openChat" @delete-chat="handleDeleteChat"
-        @click.stop />
+      <MenuBarComponent
+        v-if="menuOpen"
+        :chats="chats"
+        :active-chat-id="activeChatId"
+        :loading="historyLoading"
+        :error="historyError"
+        @new-chat="handleNewChat"
+        @select-chat="handleSelectChat"
+        @delete-chat="handleDeleteChat"
+        @click.stop
+      />
     </Teleport>
 
-    <section class="dashboard-content" :class="{ 'conversation-mode': activeChatId }">
-      <div v-if="messages.length === 0 && !sending" class="welcome">
+    <section
+      class="dashboard-content"
+      :class="{ 'conversation-mode': activeChatId }"
+    >
+      <div
+        v-if="messages.length === 0 && !loading"
+        class="welcome"
+      >
         <h1>KIMIA</h1>
 
         <p>
@@ -35,9 +59,17 @@
         </p>
       </div>
 
-      <div v-else ref="conversationContainer" class="conversation">
-        <article v-for="(message, index) in messages" :key="message._id || `${message.role}-${index}`" class="message"
-          :class="message.role">
+      <div
+        v-else
+        ref="conversationContainer"
+        class="conversation"
+      >
+        <article
+          v-for="(message, index) in messages"
+          :key="message._id || `${message.role}-${index}`"
+          class="message"
+          :class="message.role"
+        >
           <div class="message-label">
             {{ message.role === 'user' ? 'Tú' : 'KIMIA' }}
           </div>
@@ -47,8 +79,12 @@
           </div>
         </article>
 
-        <article v-if="sending" class="message assistant">
+        <article
+          v-if="loading"
+          class="message assistant"
+        >
           <div class="message-label">KIMIA</div>
+
           <div class="message-content loading-response">
             Generando respuesta...
           </div>
@@ -60,12 +96,27 @@
       </p>
 
       <div class="question-box">
-        <textarea ref="questionInput" v-model="question" placeholder="Pregunta lo que quieras a KIMIA..." rows="1"
-          :disabled="sending || loadingHistory" @input="adjustTextarea" @keydown.enter.exact.prevent="sendMessage"
-          @keydown.enter.shift.exact="insertNewLine"></textarea>
+        <textarea
+          ref="questionInput"
+          v-model="messageInput"
+          placeholder="Pregunta lo que quieras a KIMIA..."
+          rows="1"
+          :disabled="loading || historyLoading"
+          @input="adjustTextarea"
+          @keydown.enter.exact.prevent="handleSendMessage"
+        ></textarea>
 
-        <button type="button" class="send-button" :disabled="sending || loadingHistory || !question.trim()"
-          aria-label="Enviar mensaje" @click="sendMessage">
+        <button
+          type="button"
+          class="send-button"
+          :disabled="
+            loading ||
+            historyLoading ||
+            !messageInput.trim()
+          "
+          aria-label="Enviar mensaje"
+          @click="handleSendMessage"
+        >
           <img src="/icons/send.svg" alt="" />
         </button>
       </div>
@@ -79,281 +130,184 @@
 
 <script setup>
 import {
-  ref,
   computed,
-  nextTick,
-  watch,
   onMounted,
-  onBeforeUnmount
-} from 'vue'
+  ref,
+  watch,
+  nextTick,
+} from 'vue';
 
-import { useRoute, useRouter } from 'vue-router'
-import MenuBarComponent from '@/components/MenuBarComponent.vue'
+import { useRoute, useRouter } from 'vue-router';
 
-import {
-  listChats,
-  createChat,
-  getChatHistory,
-  sendChatMessage,
-  deleteChat
-} from '@/services/chatService.js'
-const route = useRoute()
-const router = useRouter()
+import MenuBarComponent from '@/components/MenuBarComponent.vue';
+import { useChat } from '@/composables/useChat.js';
+import { useChatHistory } from '@/composables/useChatHistory.js';
 
-const question = ref('')
-const questionInput = ref(null)
-const conversationContainer = ref(null)
+const route = useRoute();
+const router = useRouter();
 
-const menuOpen = ref(false)
-const chats = ref([])
-const messages = ref([])
+// Estado de la interfaz
+const menuOpen = ref(false);
+const messageInput = ref('');
+const questionInput = ref(null);
+const conversationContainer = ref(null);
 
-const loadingChats = ref(false)
-const loadingHistory = ref(false)
-const sending = ref(false)
-
-const chatsError = ref('')
-const pageError = ref('')
-
+// Chat activo
 const activeChatId = computed(() => {
-  return typeof route.params.chatId === 'string'
-    ? route.params.chatId
-    : ''
-})
+  return route.params.chatId
+    ? String(route.params.chatId)
+    : null;
+});
 
-let requestVersion = 0
-let skipNextChatLoad = false
+// Historial de conversaciones
+const {
+  chats,
+  historyLoading,
+  historyError,
+  loadChats,
+  removeChat,
+} = useChatHistory();
 
-const adjustTextarea = () => {
-  const textarea = questionInput.value
-  if (!textarea) return
+// Mensajes y operaciones del chat
+const {
+  messages,
+  loading,
+  error,
+  loadChat,
+  sendMessage,
+  consumeSkipNextChatLoad,
+  clearMessages,
+} = useChat({
+  router,
+  refreshChats: loadChats,
+});
 
-  textarea.style.height = '58px'
-  textarea.style.height = `${textarea.scrollHeight}px`
-}
+// Error que se muestra en pantalla
+const pageError = computed(() => {
+  return error.value || historyError.value || '';
+});
 
-const scrollToBottom = async () => {
-  await nextTick()
+// Cargar la lista de chats al iniciar
+onMounted(() => {
+  loadChats();
+});
 
-  if (conversationContainer.value) {
-    conversationContainer.value.scrollTop =
-      conversationContainer.value.scrollHeight
-  }
-}
-
-const loadChats = async () => {
-  loadingChats.value = true
-  chatsError.value = ''
-
-  try {
-    chats.value = await listChats()
-  } catch (error) {
-    chatsError.value =
-      `No se pudo cargar el historial: ${error.message}`
-  } finally {
-    loadingChats.value = false
-  }
-}
-
-const handleDeleteChat = async (chatId) => {
-  pageError.value = ''
-  chatsError.value = ''
-
-  try {
-    await deleteChat(chatId)
-
-    chats.value = chats.value.filter(
-      chat => chat._id !== chatId
-    )
-
-    if (activeChatId.value === chatId) {
-      messages.value = []
-      question.value = ''
-
-      await router.push({ name: 'dashboard' })
+// Cargar el historial cuando cambia la conversación
+watch(
+  activeChatId,
+  async (chatId) => {
+    if (consumeSkipNextChatLoad()) {
+      return;
     }
 
-  } catch (error) {
-    pageError.value =
-      `No se pudo eliminar la conversación: ${error.message}`
-  }
-}
-
-const loadCurrentChat = async () => {
-  const version = ++requestVersion
-
-  pageError.value = ''
-  question.value = ''
-  messages.value = []
-
-  if (!activeChatId.value) {
-    loadingHistory.value = false
-    return
-  }
-
-  loadingHistory.value = true
-
-  try {
-    const data = await getChatHistory(activeChatId.value)
-
-    if (version !== requestVersion) return
-
-    messages.value = (data.messages || []).map(message => ({
-      ...message,
-      content: message.content,
-      role: message.role
-    }))
-
-    await scrollToBottom()
-  } catch (error) {
-    if (version !== requestVersion) return
-
-    pageError.value =
-      `No se pudo abrir la conversación: ${error.message}`
-  } finally {
-    if (version === requestVersion) {
-      loadingHistory.value = false
+    if (!chatId) {
+      clearMessages();
+      return;
     }
-  }
+
+    await loadChat(chatId);
+
+    await nextTick();
+    scrollToBottom();
+  },
+  { immediate: true },
+);
+
+// Ajustar la altura del campo de texto
+function adjustTextarea() {
+  const textarea = questionInput.value;
+
+  if (!textarea) return;
+
+  textarea.style.height = 'auto';
+
+  textarea.style.height =
+    `${textarea.scrollHeight}px`;
 }
 
-const startNewChat = async () => {
-  menuOpen.value = false
-  pageError.value = ''
-  question.value = ''
-  messages.value = []
+// Desplazar la conversación al último mensaje
+function scrollToBottom() {
+  const container = conversationContainer.value;
 
-  if (route.name !== 'dashboard') {
-    await router.push({ name: 'dashboard' })
-  }
+  if (!container) return;
 
-  await nextTick()
-  questionInput.value?.focus()
+  container.scrollTop = container.scrollHeight;
 }
 
-const openChat = async (chatId) => {
-  menuOpen.value = false
-  pageError.value = ''
+// Crear una conversación nueva
+async function handleNewChat() {
+  menuOpen.value = false;
+  messageInput.value = '';
 
-  if (activeChatId.value === chatId) {
-    await loadCurrentChat()
-    return
-  }
+  clearMessages();
+
+  await router.push({
+    name: 'dashboard',
+  });
+
+  await nextTick();
+  adjustTextarea();
+}
+
+// Abrir una conversación existente
+async function handleSelectChat(chatId) {
+  if (!chatId) return;
+
+  menuOpen.value = false;
 
   await router.push({
     name: 'chat',
-    params: { chatId }
-  })
+    params: { chatId },
+  });
 }
 
-const sendMessage = async () => {
-  const content = question.value.trim()
+// Eliminar una conversación
+async function handleDeleteChat(chatId) {
+  const deleted = await removeChat(chatId);
 
-  if (!content || sending.value || loadingHistory.value) {
-    return
+  if (!deleted) return;
+
+  if (activeChatId.value === String(chatId)) {
+    clearMessages();
+    messageInput.value = '';
+
+    await router.push({
+      name: 'dashboard',
+    });
+  }
+}
+
+// Enviar un mensaje
+async function handleSendMessage() {
+  const content = messageInput.value.trim();
+
+  if (!content || loading.value || historyLoading.value) {
+    return;
   }
 
-  pageError.value = ''
-  sending.value = true
+  messageInput.value = '';
+
+  await nextTick();
+  adjustTextarea();
 
   try {
-    let chatId = activeChatId.value
+    await sendMessage(content, activeChatId.value);
 
-    if (!chatId) {
-      const chat = await createChat(content.slice(0, 60))
-
-      chatId = chat._id
-
-      chats.value = [
-        chat,
-        ...chats.value.filter(item => item._id !== chat._id)
-      ]
-
-      skipNextChatLoad = true
-
-      await router.push({
-        name: 'chat',
-        params: { chatId }
-      })
-
-      await nextTick()
-    }
-
-    const currentContent = content
-    question.value = ''
-
-    const userMessage = {
-      role: 'user',
-      content: currentContent
-    }
-
-    messages.value.push(userMessage)
-    await scrollToBottom()
-
-    const result = await sendChatMessage(chatId, currentContent)
-
-    if (result.userMessage) {
-      Object.assign(userMessage, result.userMessage)
-    }
-
-    if (result.response) {
-      messages.value.push({
-        _id: result.response.messageId,
-        role: 'assistant',
-        content: result.response.content,
-        model: result.response.model
-      })
-    }
-
-    await loadChats()
-    await scrollToBottom()
-  } catch (error) {
-    pageError.value =
-      `No se pudo enviar el mensaje: ${error.message}`
-  } finally {
-    sending.value = false
-
-    await nextTick()
-    questionInput.value?.focus()
-    adjustTextarea()
+    await nextTick();
+    scrollToBottom();
+  } catch (err) {
+    console.error('Error al enviar el mensaje:', err);
   }
 }
 
-const insertNewLine = () => {
-  const textarea = questionInput.value
-  if (!textarea) return
-
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
-
-  question.value =
-    question.value.slice(0, start) +
-    '\n' +
-    question.value.slice(end)
-
-  nextTick(() => {
-    textarea.selectionStart = textarea.selectionEnd = start + 1
-    adjustTextarea()
-  })
-}
-
-watch(activeChatId, () => {
-  if (skipNextChatLoad) {
-    skipNextChatLoad = false
-    return
-  }
-
-  loadCurrentChat()
-})
-
-onMounted(async () => {
-  await loadChats()
-  await loadCurrentChat()
-})
-
-onBeforeUnmount(() => {
-  requestVersion++
-})
+// Desplazar al final cuando cambian los mensajes
+watch(
+  () => messages.value.length,
+  async () => {
+    await nextTick();
+    scrollToBottom();
+  },
+);
 </script>
 
 <style scoped>
@@ -636,7 +590,7 @@ onBeforeUnmount(() => {
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .header {
     padding: 0 16px;
   }
@@ -651,15 +605,16 @@ onBeforeUnmount(() => {
   }
 
   .welcome p {
-    font-size: 13px;
+    font-size: 14px;
+  }
+
+  .conversation {
+    max-height: calc(100vh - 230px);
   }
 
   .message {
     padding: 14px;
   }
-
-  .conversation-mode {
-    padding-top: 20px;
-  }
 }
 </style>
+```

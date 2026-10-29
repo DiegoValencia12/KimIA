@@ -1,25 +1,18 @@
+
 import 'dotenv/config'
 import mongoose from 'mongoose'
 
 import app from './app.js'
 import connectDB from './config/db.js'
+import { getOllamaConfig, useN8nAgent } from './config/ollama.js'
 
 const PORT = process.env.PORT || 3000
 
 const removeLegacyIndexes = async () => {
   const obsoleteIndexes = [
-    {
-      collection: 'chats',
-      index: 'chatId_1'
-    },
-    {
-      collection: 'messages',
-      index: 'messageId_1'
-    },
-    {
-      collection: 'responses',
-      index: 'responseId_1'
-    }
+    { collection: 'chats', index: 'chatId_1' },
+    { collection: 'messages', index: 'messageId_1' },
+    { collection: 'responses', index: 'responseId_1' }
   ]
 
   for (const item of obsoleteIndexes) {
@@ -30,19 +23,11 @@ const removeLegacyIndexes = async () => {
 
       const indexes = await collection.indexes()
 
-      const exists = indexes.some(
-        index => index.name === item.index
-      )
-
-      if (exists) {
+      if (indexes.some(index => index.name === item.index)) {
         await collection.dropIndex(item.index)
 
         console.log(
           `Índice antiguo eliminado: ${item.collection}.${item.index}`
-        )
-      } else {
-        console.log(
-          `Índice no encontrado: ${item.collection}.${item.index}`
         )
       }
     } catch (error) {
@@ -51,7 +36,7 @@ const removeLegacyIndexes = async () => {
         error.codeName === 'NamespaceNotFound'
       ) {
         console.log(
-          `La colección ${item.collection} todavía no existe; se omite.`
+          `La colección ${item.collection} no existe; se omite.`
         )
       } else {
         throw error
@@ -65,14 +50,15 @@ const startServer = async () => {
     await connectDB()
     await removeLegacyIndexes()
 
-    app.listen(PORT, () => {
-      console.log(
-        `KimIA API ejecutándose en http://localhost:${PORT}`
-      )
+    const { model } = getOllamaConfig()
+    const mode = useN8nAgent()
+      ? 'agente n8n'
+      : 'modelo directo (Ollama)'
 
-      console.log(
-        `Modelo configurado: ${process.env.OLLAMA_MODEL || 'qwen3:0.6b'}`
-      )
+    app.listen(PORT, () => {
+      console.log(`KimIA API ejecutándose en el puerto ${PORT}`)
+      console.log(`Modelo configurado: ${model}`)
+      console.log(`Modo: ${mode}`)
     })
   } catch (error) {
     console.error(

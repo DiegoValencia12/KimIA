@@ -3,14 +3,10 @@ import Chat from '../models/Chat.js'
 import Message from '../models/Message.js'
 import Response from '../models/Response.js'
 
+import { useN8nAgent } from '../config/ollama.js'
+import { generateAssistantResponse } from '../services/assistantService.js'
+import { buildChatContext } from '../services/chatContextService.js'
 import { summarizeChat } from '../services/chatMemoryService.js'
-
-const getOllamaConfig = () => ({
-  url: (
-    process.env.OLLAMA_URL || 'http://localhost:11434'
-  ).replace(/\/$/, ''),
-  model: process.env.OLLAMA_MODEL || 'qwen3:0.6b'
-})
 
 export const createChat = async (req, res, next) => {
   try {
@@ -21,7 +17,7 @@ export const createChat = async (req, res, next) => {
 
     const chat = await Chat.create({ title })
 
-    res.status(201).json(chat)
+    return res.status(201).json(chat)
   } catch (error) {
     next(error)
   }
@@ -30,7 +26,8 @@ export const createChat = async (req, res, next) => {
 export const listChats = async (req, res, next) => {
   try {
     const chats = await Chat.find().sort({ updatedAt: -1 })
-    res.json(chats)
+
+    return res.status(200).json(chats)
   } catch (error) {
     next(error)
   }
@@ -80,7 +77,10 @@ export const getChatHistory = async (req, res, next) => {
       }
     })
 
-    res.json({ chat, messages: history })
+    return res.status(200).json({
+      chat,
+      messages: history
+    })
   } catch (error) {
     next(error)
   }
@@ -104,81 +104,45 @@ export const sendMessage = async (req, res, next) => {
       })
     }
 
-    const { url, model } = getOllamaConfig()
     const userContent = content.trim()
+    const n8nMode = useN8nAgent()
 
-    const previousMessages = await Message.find({
-      chatId: chat._id
-    }).sort({ createdAt: 1 })
+    let conversation = []
 
-    const summarizedCount = Math.min(
-      chat.summarizedMessageCount || 0,
-      previousMessages.length
-    )
+    // El modo Ollama directo utiliza la memoria de MongoDB.
+    // En modo n8n, la memoria conversacional la gestiona n8n.
+    if (!n8nMode) {
+      const previousMessages = await Message.find({
+        chatId: chat._id
+      }).sort({ createdAt: 1 })
 
-    const recentMessages = previousMessages
-      .slice(summarizedCount)
-      .filter(message => message.role !== 'system')
-      .map(message => ({
-        role: message.role,
-        content: message.content
-      }))
+      conversation = buildChatContext({
+        chat,
+        previousMessages,
+        userContent
+      })
+    }
 
-    const conversation = [
-      {
-        role: 'system',
-        content: [
-          'Eres Kim, un asistente útil.',
-          'Usa el resumen como memoria de esta conversación.',
-          'No inventes datos que no estén disponibles.',
-          'La memoria solo pertenece a este chat.',
-          chat.summary
-            ? `Resumen del chat:\n${chat.summary}`
-            : ''
-        ].filter(Boolean).join('\n\n')
-      },
-      ...recentMessages,
-      {
-        role: 'user',
-        content: userContent
-      }
-    ]
-
-    let assistantContent
+    let result
 
     try {
-      const ollamaResponse = await fetch(`${url}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model,
-          stream: false,
-          messages: conversation
-        }),
-        signal: AbortSignal.timeout(120000)
+      result = await generateAssistantResponse({
+        chatId: chat._id,
+        message: userContent,
+        conversation
       })
-
-      if (!ollamaResponse.ok) {
-        const details = await ollamaResponse.text()
-        throw new Error(
-          `Ollama respondió con HTTP ${ollamaResponse.status}: ${details}`
-        )
-      }
-
-      const data = await ollamaResponse.json()
-      assistantContent = data.message?.content?.trim()
-
-      if (!assistantContent) {
-        throw new Error('Ollama devolvió una respuesta vacía')
-      }
     } catch (error) {
+      console.error('Error al generar respuesta:', error)
+
       return res.status(502).json({
-        error: 'No se pudo obtener una respuesta de Ollama',
+        error: n8nMode
+          ? 'No se pudo obtener una respuesta del agente de n8n'
+          : 'No se pudo obtener una respuesta de Ollama',
         details: error.message
       })
     }
+
+    const { content: assistantContent, model } = result
 
     const userMessage = await Message.create({
       chatId: chat._id,
@@ -214,29 +178,41 @@ export const sendMessage = async (req, res, next) => {
       }
     })
 
-    const messagesForSummary = await Message.find({
-      chatId: chat._id
-    }).sort({ createdAt: 1 })
-
-    const newMessageCount =
-      messagesForSummary.length - (chat.summarizedMessageCount || 0)
-
-    if (newMessageCount >= 3) {
+    // El resumen de MongoDB solo se utiliza en modo directo.
+    // En modo n8n, Simple Memory gestiona el contexto del agente.
+    if (!n8nMode) {
       try {
-        const summary = await summarizeChat(messagesForSummary)
+        const messagesForSummary = await Message.find({
+          chatId: chat._id
+        }).sort({ createdAt: 1 })
 
-        chat.summary = summary
-        chat.summarizedMessageCount = messagesForSummary.length
-        await chat.save()
+        const summarizedCount = Math.min(
+          chat.summarizedMessageCount || 0,
+          messagesForSummary.length
+        )
+
+        const newMessageCount =
+          messagesForSummary.length - summarizedCount
+
+        if (newMessageCount >= 3) {
+          const summary = await summarizeChat(messagesForSummary)
+
+          chat.summary = summary
+          chat.summarizedMessageCount = messagesForSummary.length
+
+          await chat.save()
+        }
       } catch (error) {
-        console.error('No se pudo actualizar la memoria del chat:', error)
+        console.error(
+          'No se pudo actualizar la memoria del chat:',
+          error
+        )
       }
     }
   } catch (error) {
     next(error)
   }
 }
-
 
 export const deleteChat = async (req, res, next) => {
   try {

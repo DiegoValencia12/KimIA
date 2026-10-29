@@ -1,58 +1,39 @@
-const getOllamaConfig = () => ({
-  url: (
-    process.env.OLLAMA_URL || 'http://localhost:11434'
-  ).replace(/\/$/, ''),
-  model: process.env.OLLAMA_MODEL || 'qwen3:0.6b'
-})
+
+import { getOllamaConfig } from '../config/ollama.js'
+import { generateOllamaResponse } from './ollamaService.js'
 
 export const summarizeChat = async (messages) => {
   if (!messages.length) return ''
 
-  const { url, model } = getOllamaConfig()
+  const { summaryPrompt } = getOllamaConfig()
+
+  if (!summaryPrompt) {
+    throw new Error(
+      'AI_SUMMARY_PROMPT no está configurado'
+    )
+  }
 
   const conversation = messages
+    .filter(message => message.role !== 'system')
     .map(message => {
       const role = message.role === 'assistant'
-        ? 'Kim'
-        : 'Usuario'
+        ? 'assistant'
+        : 'user'
 
       return `${role}: ${message.content}`
     })
     .join('\n')
 
-  const response = await fetch(`${url}/api/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
+  const { content } = await generateOllamaResponse([
+    {
+      role: 'system',
+      content: summaryPrompt
     },
-    body: JSON.stringify({
-      model,
-      stream: false,
-      messages: [
-        {
-          role: 'system',
-          content:
-            'Resume la conversación conservando los datos importantes, preferencias, objetivos y decisiones del usuario. No inventes información. El resumen es únicamente para mantener el contexto de este chat. Devuelve solo el resumen.'
-        },
-        {
-          role: 'user',
-          content: conversation
-        }
-      ]
-    }),
-    signal: AbortSignal.timeout(120000)
-  })
+    {
+      role: 'user',
+      content: conversation
+    }
+  ])
 
-  if (!response.ok) {
-    throw new Error(`Error de Ollama: HTTP ${response.status}`)
-  }
-
-  const data = await response.json()
-  const summary = data.message?.content?.trim()
-
-  if (!summary) {
-    throw new Error('Ollama devolvió un resumen vacío')
-  }
-
-  return summary
+  return content
 }

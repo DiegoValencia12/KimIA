@@ -1,5 +1,8 @@
+
 import express from 'express'
+
 import chatsRoutes from './routes/chats.routes.js'
+import { getOllamaConfig, useN8nAgent } from './config/ollama.js'
 
 const app = express()
 
@@ -11,6 +14,7 @@ app.use((req, res, next) => {
     origin === 'http://127.0.0.1:5173'
   ) {
     res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Vary', 'Origin')
   }
 
   res.setHeader(
@@ -33,10 +37,14 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '1mb' }))
 
 app.get('/api/health', (req, res) => {
-  res.json({
+  const { model } = getOllamaConfig()
+  const n8nMode = useN8nAgent()
+
+  return res.status(200).json({
     status: 'ok',
     app: 'KimIA',
-    model: process.env.OLLAMA_MODEL || 'qwen3:0.6b'
+    model,
+    mode: n8nMode ? 'agente n8n' : 'modelo directo'
   })
 })
 
@@ -51,7 +59,11 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error(err)
 
-  res.status(500).json({
+  if (res.headersSent) {
+    return next(err)
+  }
+
+  return res.status(500).json({
     error: 'Error interno del servidor'
   })
 })

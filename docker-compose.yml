@@ -1,4 +1,3 @@
-
 services:
   mongodb:
     image: mongo:8
@@ -14,8 +13,6 @@ services:
     networks:
       - kimia-network
 
-  
-  
   backend:
     build:
       context: ./backend
@@ -31,12 +28,15 @@ services:
       PORT: 3000
       MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/kimia?authSource=admin
       OLLAMA_URL: http://ollama:11434
-      OLLAMA_MODEL: qwen3:0.6b
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:0.6b}
+      USE_N8N_AGENT: ${USE_N8N_AGENT:-false}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://n8n:5678/webhook/KimIA/chat}
     depends_on:
       - mongodb
+      - ollama
+      - n8n
     networks:
       - kimia-network
-
 
   frontend:
     build:
@@ -83,13 +83,11 @@ services:
     networks:
       - kimia-network
 
-
 volumes:
   mongodb_data:
   ollama_data:
     name: kimia_ollama
   n8n_data:
-
 
 networks:
   kimia-network:
