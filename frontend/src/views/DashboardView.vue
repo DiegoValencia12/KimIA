@@ -1,4 +1,4 @@
-```vue
+
 <template>
   <main class="dashboard">
     <header class="header">
@@ -17,9 +17,7 @@
         <div class="logo">KIMIA</div>
       </div>
 
-      <button class="user-button" type="button" aria-label="Usuario">
-        <img src="/icons/user.svg" alt="Usuario" />
-      </button>
+      <UserMenuComponent />
     </header>
 
     <Teleport to="body">
@@ -135,40 +133,38 @@ import {
   ref,
   watch,
   nextTick,
-} from 'vue';
+} from 'vue'
 
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router'
 
-import MenuBarComponent from '@/components/MenuBarComponent.vue';
-import { useChat } from '@/composables/useChat.js';
-import { useChatHistory } from '@/composables/useChatHistory.js';
+import MenuBarComponent from '@/components/MenuBarComponent.vue'
+import UserMenuComponent from '@/components/UserMenuComponent.vue'
 
-const route = useRoute();
-const router = useRouter();
+import { useChat } from '@/composables/useChat.js'
+import { useChatHistory } from '@/composables/useChatHistory.js'
 
-// Estado de la interfaz
-const menuOpen = ref(false);
-const messageInput = ref('');
-const questionInput = ref(null);
-const conversationContainer = ref(null);
+const route = useRoute()
+const router = useRouter()
 
-// Chat activo
+const menuOpen = ref(false)
+const messageInput = ref('')
+const questionInput = ref(null)
+const conversationContainer = ref(null)
+
 const activeChatId = computed(() => {
   return route.params.chatId
     ? String(route.params.chatId)
-    : null;
-});
+    : null
+})
 
-// Historial de conversaciones
 const {
   chats,
   historyLoading,
   historyError,
   loadChats,
   removeChat,
-} = useChatHistory();
+} = useChatHistory()
 
-// Mensajes y operaciones del chat
 const {
   messages,
   loading,
@@ -180,134 +176,122 @@ const {
 } = useChat({
   router,
   refreshChats: loadChats,
-});
+})
 
-// Error que se muestra en pantalla
 const pageError = computed(() => {
-  return error.value || historyError.value || '';
-});
+  return error.value || historyError.value || ''
+})
 
-// Cargar la lista de chats al iniciar
 onMounted(() => {
-  loadChats();
-});
+  loadChats()
+})
 
-// Cargar el historial cuando cambia la conversación
 watch(
   activeChatId,
   async (chatId) => {
     if (consumeSkipNextChatLoad()) {
-      return;
+      return
     }
 
     if (!chatId) {
-      clearMessages();
-      return;
+      clearMessages()
+      return
     }
 
-    await loadChat(chatId);
+    await loadChat(chatId)
 
-    await nextTick();
-    scrollToBottom();
+    await nextTick()
+    scrollToBottom()
   },
   { immediate: true },
-);
+)
 
-// Ajustar la altura del campo de texto
 function adjustTextarea() {
-  const textarea = questionInput.value;
+  const textarea = questionInput.value
 
-  if (!textarea) return;
+  if (!textarea) return
 
-  textarea.style.height = 'auto';
-
-  textarea.style.height =
-    `${textarea.scrollHeight}px`;
+  textarea.style.height = 'auto'
+  textarea.style.height = `${textarea.scrollHeight}px`
 }
 
-// Desplazar la conversación al último mensaje
 function scrollToBottom() {
-  const container = conversationContainer.value;
+  const container = conversationContainer.value
 
-  if (!container) return;
+  if (!container) return
 
-  container.scrollTop = container.scrollHeight;
+  container.scrollTop = container.scrollHeight
 }
 
-// Crear una conversación nueva
 async function handleNewChat() {
-  menuOpen.value = false;
-  messageInput.value = '';
+  menuOpen.value = false
+  messageInput.value = ''
 
-  clearMessages();
+  clearMessages()
 
   await router.push({
     name: 'dashboard',
-  });
+  })
 
-  await nextTick();
-  adjustTextarea();
+  await nextTick()
+  adjustTextarea()
 }
 
-// Abrir una conversación existente
 async function handleSelectChat(chatId) {
-  if (!chatId) return;
+  if (!chatId) return
 
-  menuOpen.value = false;
+  menuOpen.value = false
 
   await router.push({
     name: 'chat',
     params: { chatId },
-  });
+  })
 }
 
-// Eliminar una conversación
 async function handleDeleteChat(chatId) {
-  const deleted = await removeChat(chatId);
+  const deleted = await removeChat(chatId)
 
-  if (!deleted) return;
+  if (!deleted) return
 
   if (activeChatId.value === String(chatId)) {
-    clearMessages();
-    messageInput.value = '';
+    clearMessages()
+    messageInput.value = ''
 
     await router.push({
       name: 'dashboard',
-    });
+    })
   }
 }
 
-// Enviar un mensaje
 async function handleSendMessage() {
-  const content = messageInput.value.trim();
+  const content = messageInput.value.trim()
 
   if (!content || loading.value || historyLoading.value) {
-    return;
+    return
   }
 
-  messageInput.value = '';
+  messageInput.value = ''
 
-  await nextTick();
-  adjustTextarea();
+  await nextTick()
+  adjustTextarea()
 
   try {
-    await sendMessage(content, activeChatId.value);
+    await sendMessage(content, activeChatId.value)
 
-    await nextTick();
-    scrollToBottom();
+    await nextTick()
+    scrollToBottom()
   } catch (err) {
-    console.error('Error al enviar el mensaje:', err);
+    console.error('Error al enviar el mensaje:', err)
   }
 }
 
-// Desplazar al final cuando cambian los mensajes
 watch(
   () => messages.value.length,
   async () => {
-    await nextTick();
-    scrollToBottom();
+    await nextTick()
+    scrollToBottom()
   },
-);
+)
 </script>
 
 <style scoped>
@@ -377,34 +361,6 @@ watch(
   font-size: 21px;
   font-weight: 800;
   letter-spacing: 3px;
-}
-
-.user-button {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 1px solid #27272A;
-  border-radius: 50%;
-  background: #18181B;
-  cursor: pointer;
-}
-
-.user-button img {
-  width: 19px;
-  height: 19px;
-  opacity: 0.7;
-}
-
-.user-button:hover {
-  border-color: #3F3F46;
-  background: #27272A;
-}
-
-.user-button:hover img {
-  opacity: 1;
 }
 
 .menu-overlay {
@@ -617,4 +573,3 @@ watch(
   }
 }
 </style>
-```
