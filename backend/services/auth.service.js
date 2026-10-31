@@ -75,3 +75,22 @@ export const loginUser = async ({ email, password }) => {
 
   return data;
 };
+
+
+
+export const logoutUser = async (uid) =>
+  {
+  if (!uid)
+  {
+    const error = new Error('Identificador de usuario requerido');
+    error.code = 'auth/invalid-uid';
+    throw error;
+  }
+
+  await firebaseAuth.revokeRefreshTokens(uid);
+
+  return{
+    success: true,
+    message: 'Sesión cerrada correctamente',
+  };
+};

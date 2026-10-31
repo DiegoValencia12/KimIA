@@ -1,4 +1,4 @@
-import { registerUser, loginUser } from '../services/auth.service.js';
+import { registerUser, loginUser, logoutUser } from '../services/auth.service.js';
 import { handleFirebaseError } from '../utils/firebaseErrorHandler.js';
 
 export const register = async (req, res) =>
@@ -68,6 +68,25 @@ export const login = async (req, res) =>
       },
     });
   } catch (error) {
+    return handleFirebaseError(error, res);
+  }
+};
+
+
+export const logout = async (req, res) =>
+{
+  try
+  {
+    const uid = req.user.uid;
+
+    await logoutUser(uid);
+
+    return res.status(200).json({
+      message: 'Sesión cerrada correctamente',
+    });
+  }
+  catch (error)
+  {
     return handleFirebaseError(error, res);
   }
 };

@@ -1,3 +1,4 @@
+
 import { firebaseAuth } from '../config/firebase.js';
 
 export const verifyFirebaseToken = async (req, res, next) => {
@@ -11,6 +12,7 @@ export const verifyFirebaseToken = async (req, res, next) => {
     }
 
     const token = authorization.split(' ')[1];
+
     const decodedToken = await firebaseAuth.verifyIdToken(token);
 
     req.user = {
@@ -20,8 +22,10 @@ export const verifyFirebaseToken = async (req, res, next) => {
 
     next();
   } catch (error) {
+    console.error('Error de autenticación:', error.code || error.message);
+
     return res.status(401).json({
-      error: 'Token inválido o expirado',
+      error: 'Sesión inválida, expirada o revocada',
     });
   }
 };
