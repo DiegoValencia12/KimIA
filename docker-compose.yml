@@ -31,6 +31,7 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:0.6b}
       USE_N8N_AGENT: ${USE_N8N_AGENT:-false}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://n8n:5678/webhook/KimIA/chat}
+      FIREBASE_API_KEY: ${FIREBASE_API_KEY}
     depends_on:
       - mongodb
       - ollama
