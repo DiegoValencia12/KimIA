@@ -9,7 +9,11 @@ import {
   deleteChat
 } from '../controllers/chat.controller.js'
 
+import { verifyFirebaseToken } from '../middlewares/verifyFirebaseToken.js'
+
 const router = Router()
+
+router.use(verifyFirebaseToken)
 
 router.post('/', createChat)
 router.get('/', listChats)

@@ -15,7 +15,7 @@ export const createChat = async (req, res, next) => {
         ? req.body.title.trim()
         : 'Nuevo chat'
 
-    const chat = await Chat.create({ title })
+    const chat = await Chat.create({ title, userId: req.user.uid });
 
     return res.status(201).json(chat)
   } catch (error) {
@@ -25,7 +25,9 @@ export const createChat = async (req, res, next) => {
 
 export const listChats = async (req, res, next) => {
   try {
-    const chats = await Chat.find().sort({ updatedAt: -1 })
+    const chats = await Chat.find({
+      userId: req.user.uid
+    }).sort({ updatedAt: -1 })
 
     return res.status(200).json(chats)
   } catch (error) {
@@ -35,7 +37,10 @@ export const listChats = async (req, res, next) => {
 
 export const getChatHistory = async (req, res, next) => {
   try {
-    const chat = await Chat.findById(req.params.chatId)
+    const chat = await Chat.findOne({
+      _id: req.params.chatId,
+      userId: req.user.uid
+    })
 
     if (!chat) {
       return res.status(404).json({
@@ -69,10 +74,10 @@ export const getChatHistory = async (req, res, next) => {
         ...message.toObject(),
         response: response
           ? {
-              content: response.content,
-              model: response.model,
-              createdAt: response.createdAt
-            }
+            content: response.content,
+            model: response.model,
+            createdAt: response.createdAt
+          }
           : null
       }
     })
@@ -96,7 +101,10 @@ export const sendMessage = async (req, res, next) => {
       })
     }
 
-    const chat = await Chat.findById(req.params.chatId)
+    const chat = await Chat.findOne({
+      _id: req.params.chatId,
+      userId: req.user.uid
+    })
 
     if (!chat) {
       return res.status(404).json({
@@ -216,7 +224,10 @@ export const sendMessage = async (req, res, next) => {
 
 export const deleteChat = async (req, res, next) => {
   try {
-    const chat = await Chat.findById(req.params.chatId)
+    const chat = await Chat.findOne({
+      _id: req.params.chatId,
+      userId: req.user.uid
+    })
 
     if (!chat) {
       return res.status(404).json({

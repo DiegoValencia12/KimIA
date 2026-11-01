@@ -12,14 +12,16 @@ export const generateOllamaResponse = async (messages) => {
     body: JSON.stringify({
       model,
       stream: false,
-      messages
+      messages,
+      options: {
+        temperature: 0.7
+      }
     }),
     signal: AbortSignal.timeout(120000)
   })
 
   if (!response.ok) {
     const details = await response.text()
-
     throw new Error(
       `Ollama respondió con HTTP ${response.status}: ${details}`
     )

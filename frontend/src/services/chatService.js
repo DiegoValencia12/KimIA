@@ -1,58 +1,80 @@
 
-const API_URL = 'http://localhost:3000/api'
+import axios from 'axios'
 
-async function request(endpoint, options = {}) {
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers
-    },
-    ...options
-  })
+const api = axios.create({
+  baseURL: '/api',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
 
-  const data = await response.json().catch(() => ({}))
+api.interceptors.request.use((config) => {
+  const idToken = localStorage.getItem('idToken')
 
-  if (!response.ok) {
-    throw new Error(
-      data.error || `Error HTTP ${response.status}`
-    )
+  if (idToken) {
+    config.headers.Authorization = `Bearer ${idToken}`
   }
 
-  return data
-}
+  return config
+})
 
-export function listChats() {
-  return request('/chats')
-}
-
-export function createChat(title = 'Nuevo chat') {
-  return request('/chats', {
-    method: 'POST',
-    body: JSON.stringify({ title })
-  })
-}
-
-export function getChatHistory(chatId) {
-  return request(`/chats/${encodeURIComponent(chatId)}`)
-}
-
-export function sendChatMessage(chatId, content) {
-  return request(
-    `/chats/${encodeURIComponent(chatId)}/messages`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ content })
-    }
+function handleError(error) {
+  throw new Error(
+    error.response?.data?.error ||
+    error.response?.data?.message ||
+    error.message ||
+    'Error al comunicarse con el servidor'
   )
 }
 
-
-export function deleteChat(chatId) {
-  return request(`/chats/${encodeURIComponent(chatId)}`, {
-    method: 'DELETE'
-  })
+export const listChats = async () => {
+  try {
+    const response = await api.get('/chats')
+    return response.data
+  } catch (error) {
+    handleError(error)
+  }
 }
 
+export const createChat = async (title = 'Nuevo chat') => {
+  try {
+    const response = await api.post('/chats', { title })
+    return response.data
+  } catch (error) {
+    handleError(error)
+  }
+}
 
+export const getChatHistory = async (chatId) => {
+  try {
+    const response = await api.get(`/chats/${encodeURIComponent(chatId)}`)
+    return response.data
+  } catch (error) {
+    handleError(error)
+  }
+}
 
+export const sendChatMessage = async (chatId, content) => {
+  try {
+    const response = await api.post(
+      `/chats/${encodeURIComponent(chatId)}/messages`,
+      { content }
+    )
 
+    return response.data
+  } catch (error) {
+    handleError(error)
+  }
+}
+
+export const deleteChat = async (chatId) => {
+  try {
+    const response = await api.delete(
+      `/chats/${encodeURIComponent(chatId)}`
+    )
+
+    return response.data
+  } catch (error) {
+    handleError(error)
+  }
+}

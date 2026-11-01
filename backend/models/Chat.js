@@ -11,8 +11,9 @@ const chatSchema = new mongoose.Schema(
 
     userId: {
       type: String,
-      default: 'local-user',
-      index: true
+      required: true,
+      index: true,
+      immutable: true
     },
 
     summary: {
