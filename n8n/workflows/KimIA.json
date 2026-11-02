@@ -5,15 +5,17 @@
       "parameters": {
         "promptType": "define",
         "text": "={{ $json.body.message }}",
-        "options": {}
+        "options": {
+          "systemMessage": "Eres un agente inteligente basado en LLM para la consulta confiable de datos abiertos no estructurados con validación automática."
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        384,
+        208,
         0
       ],
-      "id": "87845361-ff78-49e9-9aea-7ccdbd3cce20",
+      "id": "0c863ade-316e-4b23-b2f2-c6947ea16909",
       "name": "AI Agent"
     },
     {
@@ -24,14 +26,14 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
       "typeVersion": 1,
       "position": [
-        384,
+        208,
         208
       ],
-      "id": "b75553b8-7097-447c-9ceb-d741af5875eb",
+      "id": "25cc3594-374b-4efd-941e-13197b1e8298",
       "name": "Ollama Chat Model",
       "credentials": {
         "ollamaApi": {
-          "id": "pt2NQiNS4cHzShHi",
+          "id": "WSYaPjycAZrkBQTe",
           "name": "Ollama account"
         }
       }
@@ -44,24 +46,11 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.4,
       "position": [
-        480,
+        304,
         416
       ],
-      "id": "a437480e-d53b-418f-8c3f-f817e451ee1d",
+      "id": "dacf47f3-dd50-4266-8451-67bd824d6fd1",
       "name": "Simple Memory"
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
-      "typeVersion": 1.4,
-      "position": [
-        528,
-        224
-      ],
-      "id": "ccffd2ca-0021-4787-9d3b-843bc8462b29",
-      "name": "MCP Client"
     },
     {
       "parameters": {
@@ -73,10 +62,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.2,
       "position": [
-        176,
+        0,
         0
       ],
-      "id": "582c2dc8-7241-46c3-95e6-05342c7bc992",
+      "id": "5ce73376-4d94-42cd-bc8a-5079f22eace7",
       "name": "Webhook",
       "webhookId": "95062f5c-397e-4da9-9f8a-82f5ee6d8ae0"
     },
@@ -89,11 +78,25 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        752,
+        576,
         0
       ],
-      "id": "99fced8b-6319-4d29-944f-dfd9ef00f0fb",
+      "id": "554ccb09-3a8d-4382-ad25-986509104949",
       "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://localhost:5678/mcp-test/kimia-tools",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        352,
+        208
+      ],
+      "id": "adace142-320c-43ff-ad45-1fb3d02003c3",
+      "name": "Tools"
     }
   ],
   "pinData": {},
@@ -120,17 +123,6 @@
         ]
       ]
     },
-    "MCP Client": {
-      "ai_tool": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Webhook": {
       "main": [
         [
@@ -152,19 +144,30 @@
           }
         ]
       ]
+    },
+    "Tools": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "e16053e3-0ad4-4825-932a-21c318a23995",
+  "versionId": "4860b387-344e-4c27-b9ab-436fdeb36c6e",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "a842a438116cb5d2cea416b9f5eee5a1996eee7ea9237b4bd798e2607f919c93"
+    "instanceId": "d44ed3d99a0bef3335ac8642c5cbe89f9020f420ca6a34de10f31d8af0711831"
   },
   "nodeGroups": [],
-  "id": "xtuutkzG7Uh55qib",
+  "id": "hVWLNT8m66ewYFOX",
   "tags": []
 }

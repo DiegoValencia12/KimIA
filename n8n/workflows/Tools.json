@@ -1,0 +1,33 @@
+{
+  "name": "Tools",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "kimia-tools"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a73b4255-db5f-42e5-ba25-f9ce18994ee2",
+      "name": "MCP Server Trigger",
+      "webhookId": "9328efa3-bea1-45a8-a72b-d8db621a98af"
+    }
+  ],
+  "pinData": {},
+  "connections": {},
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9ba276a8-6ada-4f7f-806c-27e20ef8668c",
+  "meta": {
+    "instanceId": "d44ed3d99a0bef3335ac8642c5cbe89f9020f420ca6a34de10f31d8af0711831"
+  },
+  "nodeGroups": [],
+  "id": "Kis741VXBcaw78Ug",
+  "tags": []
+}
