@@ -4,6 +4,8 @@ import express from 'express'
 import chatsRoutes from './routes/chats.routes.js'
 import authRoutes from './routes/auth.routes.js'
 import { getOllamaConfig, useN8nAgent } from './config/ollama.js'
+import { errorHandler } from './middlewares/errorHandler.js'
+
 
 const app = express()
 
@@ -69,5 +71,7 @@ app.use((err, req, res, next) => {
     error: 'Error interno del servidor'
   })
 })
+
+app.use(errorHandler)
 
 export default app

@@ -1,34 +1,19 @@
-
 import { Router } from 'express'
-
 import {
   register,
   login,
+  me,
+  verify,
   logout
 } from '../controllers/auth.controller.js'
-
-import { verifyFirebaseToken } from '../middlewares/verifyFirebaseToken.js'
+import { authenticateToken } from '../middlewares/authenticateToken.js'
 
 const router = Router()
 
 router.post('/register', register)
 router.post('/login', login)
-
-router.post('/logout', verifyFirebaseToken, logout)
-
-router.get('/verify', verifyFirebaseToken, (req, res) => {
-  res.status(200).json({
-    valid: true,
-    user: {
-      uid: req.user.uid,
-      email: req.user.email
-    }
-  })
-})
-
-router.get('/profile')
-router.patch('/profile')
-router.patch('/password')
-router.delete('/account')
+router.get('/me', authenticateToken, me)
+router.get('/verify', authenticateToken, verify)
+router.post('/logout', authenticateToken, logout)
 
 export default router

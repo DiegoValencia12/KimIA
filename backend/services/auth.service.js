@@ -1,96 +1,84 @@
+import bcrypt from 'bcryptjs'
+import User from '../models/User.js'
+import Session from '../models/Session.js'
+import { generateToken } from '../utils/jwt.js'
 
-import { firebaseAuth } from '../config/firebase.js';
+export const registerUser = async ({ email, password, displayName }) => {
+  const normalizedEmail = email.trim().toLowerCase()
 
-export const registerUser = async ({ email, password, displayName }) =>
-{
-  return await firebaseAuth.createUser(
-  {
-    email,
-    password,
-    ...(displayName ? { displayName } : {}),
-  });
-};
+  const existingUser = await User.findOne({
+    email: normalizedEmail
+  })
+
+  if (existingUser) {
+    const error = new Error('El correo ya está registrado')
+    error.status = 409
+    throw error
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12)
+
+  const user = await User.create({
+    email: normalizedEmail,
+    passwordHash,
+    displayName: displayName.trim()
+  })
+
+  return {
+    uid: user._id.toString(),
+    email: user.email,
+    displayName: user.displayName
+  }
+}
 
 export const loginUser = async ({ email, password }) => {
-  const apiKey = process.env.FIREBASE_API_KEY;
+  const normalizedEmail = email.trim().toLowerCase()
 
-  if (!apiKey) {
-    const error = new Error('FIREBASE_API_KEY no está configurada');
-    error.code = 'auth/configuration-not-found';
-    throw error;
+  const user = await User.findOne({
+    email: normalizedEmail
+  }).select('+passwordHash')
+
+  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    const error = new Error('Correo o contraseña incorrectos')
+    error.status = 401
+    throw error
   }
 
-  let response;
+  const { token, jti, expiresAt } = generateToken(user._id.toString())
 
-  try {
-    response = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          returnSecureToken: true,
-        }),
-      },
-    );
-  } catch (cause) {
-    const error = new Error('No se pudo conectar con Firebase Authentication');
-    error.code = 'auth/network-request-failed';
-    error.cause = cause;
-    throw error;
+  await Session.create({
+    userId: user._id,
+    jti,
+    expiresAt
+  })
+
+  return {
+    user: {
+      uid: user._id.toString(),
+      email: user.email,
+      displayName: user.displayName
+    },
+    tokens: {
+      idToken: token,
+      expiresAt
+    }
   }
+}
 
-  let data;
+export const getUserById = async (uid) => {
+  const user = await User.findById(uid)
+    .select('_id email displayName createdAt')
 
-  try {
-    data = await response.json();
-  } catch {
-    const error = new Error('Firebase devolvió una respuesta no válida');
-    error.code = 'auth/invalid-response';
-    throw error;
+  if (!user) return null
+
+  return {
+    uid: user._id.toString(),
+    email: user.email,
+    displayName: user.displayName,
+    createdAt: user.createdAt
   }
+}
 
-  if (!response.ok) {
-    const firebaseMessage = data.error?.message || 'UNKNOWN_ERROR';
-
-    const firebaseErrors = {
-      INVALID_LOGIN_CREDENTIALS: 'auth/invalid-credential',
-      EMAIL_NOT_FOUND: 'auth/user-not-found',
-      INVALID_PASSWORD: 'auth/wrong-password',
-      USER_DISABLED: 'auth/user-disabled',
-      TOO_MANY_ATTEMPTS_TRY_LATER: 'auth/too-many-requests',
-      API_KEY_INVALID: 'auth/invalid-api-key',
-      OPERATION_NOT_ALLOWED: 'auth/operation-not-allowed',
-    };
-
-    const error = new Error(firebaseMessage);
-    error.code = firebaseErrors[firebaseMessage] || 'auth/unknown';
-
-    throw error;
-  }
-
-  return data;
-};
-
-
-
-export const logoutUser = async (uid) =>
-  {
-  if (!uid)
-  {
-    const error = new Error('Identificador de usuario requerido');
-    error.code = 'auth/invalid-uid';
-    throw error;
-  }
-
-  await firebaseAuth.revokeRefreshTokens(uid);
-
-  return{
-    success: true,
-    message: 'Sesión cerrada correctamente',
-  };
-};
+export const logoutUser = async (jti) => {
+  await Session.deleteOne({ jti })
+}
