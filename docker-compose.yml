@@ -88,6 +88,27 @@ services:
       - ollama
     networks:
       - kimia-network
+  
+  playwright:
+    image: mcr.microsoft.com/playwright/mcp:latest
+    container_name: KimIA-playwright
+    restart: unless-stopped
+    init: true
+    ports:
+      - "8931:8931"
+    command:
+      - --headless
+      - --browser
+      - chromium
+      - --no-sandbox
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8931"
+      - --allowed-hosts
+      - "*"
+    networks:
+      - kimia-network
 
 volumes:
   mongodb_data:

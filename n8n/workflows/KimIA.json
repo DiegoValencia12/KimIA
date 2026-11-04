@@ -6,7 +6,8 @@
         "promptType": "define",
         "text": "={{ $json.body.message }}",
         "options": {
-          "systemMessage": "Eres un agente inteligente basado en LLM para la consulta confiable de datos abiertos no estructurados con validación automática."
+          "systemMessage": "Eres un agente inteligente basado en LLM para la consulta confiable de datos abiertos no estructurados con validación automática.",
+          "maxIterations": 5
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -21,7 +22,10 @@
     {
       "parameters": {
         "model": "={{ $('Webhook').first().json.body.model || 'qwen3:0.6b' }}",
-        "options": {}
+        "options": {
+          "keepAlive": "30m",
+          "numCtx": 8192
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
       "typeVersion": 1,
@@ -86,7 +90,7 @@
     },
     {
       "parameters": {
-        "endpointUrl": "http://localhost:5678/mcp-test/kimia-tools",
+        "endpointUrl": "http://localhost:5678/mcp/kimia-tools",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
@@ -162,7 +166,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "4860b387-344e-4c27-b9ab-436fdeb36c6e",
+  "versionId": "603a58be-fdd0-4110-9136-6ff148ccd625",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "d44ed3d99a0bef3335ac8642c5cbe89f9020f420ca6a34de10f31d8af0711831"
