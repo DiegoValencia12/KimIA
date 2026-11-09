@@ -6,34 +6,30 @@
         "promptType": "define",
         "text": "={{ $json.body.message }}",
         "options": {
-          "systemMessage": "Eres un agente inteligente basado en LLM para la consulta confiable de datos abiertos no estructurados con validación automática.",
-          "maxIterations": 5
+          "systemMessage": "Eres un agente inteligente basado en LLM para la consulta confiable de datos abiertos no estructurados con validación automática."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        208,
-        0
+        1824,
+        528
       ],
-      "id": "0c863ade-316e-4b23-b2f2-c6947ea16909",
+      "id": "cbdc6746-0064-41a4-9ada-40ca83254b90",
       "name": "AI Agent"
     },
     {
       "parameters": {
         "model": "={{ $('Webhook').first().json.body.model || 'qwen3:0.6b' }}",
-        "options": {
-          "keepAlive": "30m",
-          "numCtx": 8192
-        }
+        "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
       "typeVersion": 1,
       "position": [
-        208,
-        208
+        1824,
+        736
       ],
-      "id": "25cc3594-374b-4efd-941e-13197b1e8298",
+      "id": "dd026ff3-a84b-46ce-8c1c-011be01c55ce",
       "name": "Ollama Chat Model",
       "credentials": {
         "ollamaApi": {
@@ -50,10 +46,10 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.4,
       "position": [
-        304,
-        416
+        1920,
+        944
       ],
-      "id": "dacf47f3-dd50-4266-8451-67bd824d6fd1",
+      "id": "07a86146-81ef-4b08-a75a-78acc702b756",
       "name": "Simple Memory"
     },
     {
@@ -66,10 +62,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.2,
       "position": [
-        0,
-        0
+        1616,
+        528
       ],
-      "id": "5ce73376-4d94-42cd-bc8a-5079f22eace7",
+      "id": "ef9d0736-ad7c-41ee-89c1-33c4ee415b51",
       "name": "Webhook",
       "webhookId": "95062f5c-397e-4da9-9f8a-82f5ee6d8ae0"
     },
@@ -82,10 +78,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        576,
-        0
+        2192,
+        528
       ],
-      "id": "554ccb09-3a8d-4382-ad25-986509104949",
+      "id": "d66ab612-31f1-4b62-941a-91a9a08f1965",
       "name": "Respond to Webhook"
     },
     {
@@ -96,10 +92,10 @@
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.4,
       "position": [
-        352,
-        208
+        1968,
+        736
       ],
-      "id": "adace142-320c-43ff-ad45-1fb3d02003c3",
+      "id": "ae6d7e2d-d6d1-410b-a018-07b58b614326",
       "name": "Tools"
     }
   ],
@@ -166,7 +162,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "603a58be-fdd0-4110-9136-6ff148ccd625",
+  "versionId": "a0049295-d6a3-4381-aa5e-2befa17c53e5",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "d44ed3d99a0bef3335ac8642c5cbe89f9020f420ca6a34de10f31d8af0711831"

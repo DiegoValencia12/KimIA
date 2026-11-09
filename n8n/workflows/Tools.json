@@ -8,31 +8,25 @@
       "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
       "typeVersion": 2.1,
       "position": [
-        0,
-        0
+        384,
+        96
       ],
-      "id": "a73b4255-db5f-42e5-ba25-f9ce18994ee2",
+      "id": "dd1140a6-af59-4b7d-b608-a1d23b860953",
       "name": "MCP Server Trigger",
       "webhookId": "9328efa3-bea1-45a8-a72b-d8db621a98af"
     },
     {
       "parameters": {
         "endpointUrl": "http://playwright:8931/mcp",
-        "include": "selected",
-        "includeTools": [
-          "browser_snapshot",
-          "browser_click",
-          "browser_navigate"
-        ],
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.4,
       "position": [
-        144,
-        208
+        528,
+        304
       ],
-      "id": "c8f29587-1d62-4861-8c14-e0d25897a4e1",
+      "id": "247398c0-89d6-474c-8339-6683d3e21bce",
       "name": "MCP Client"
     }
   ],
@@ -55,7 +49,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "17967ef5-9d60-4290-894e-9e5b513d62ab",
+  "versionId": "c57accf6-cff3-4196-b3b1-71aa57ae0908",
   "meta": {
     "instanceId": "d44ed3d99a0bef3335ac8642c5cbe89f9020f420ca6a34de10f31d8af0711831"
   },
