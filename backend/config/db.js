@@ -1,18 +1,17 @@
+import mongoose from "mongoose";
 
-import mongoose from 'mongoose';
-
-const connectDB = async () =>
-{
+export const connectDB = async () => {
   const mongoURI = process.env.MONGODB_URI;
 
-  if (!mongoURI)
-  {
-    throw new Error('La variable MONGODB_URI no está configurada');
+  if (!mongoURI) {
+    throw new Error("La variable MONGODB_URI no está configurada");
   }
 
   await mongoose.connect(mongoURI);
-
-  console.log('MongoDB conectado correctamente');
+  console.log("MongoDB conectado correctamente");
 };
 
-export default connectDB;
+export const disconnectDB = async () => {
+  await mongoose.disconnect();
+  console.log("MongoDB desconectado correctamente");
+};

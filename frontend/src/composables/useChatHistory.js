@@ -1,3 +1,4 @@
+
 import { ref } from 'vue';
 import {
   listChats,
@@ -51,8 +52,11 @@ export function useChatHistory() {
     try {
       await deleteChat(chatId);
 
+      historyVersion++;
+
       chats.value = chats.value.filter(
-        (chat) => String(chat.id ?? chat.chatId) !== String(chatId),
+        (chat) =>
+          String(chat._id ?? chat.id ?? chat.chatId) !== String(chatId),
       );
 
       return true;

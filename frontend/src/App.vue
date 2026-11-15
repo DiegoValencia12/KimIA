@@ -2,6 +2,8 @@
 <template>
   <router-view />
 
+  <ConfirmationDialog />
+
   <TransitionGroup name="notification" tag="div" class="notification-container">
     <Notification
       v-for="item in notificationStore.notifications"
@@ -17,6 +19,7 @@
 
 <script setup>
 import Notification from '@/components/Notification.vue'
+import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
 import { useNotificationStore } from '@/stores/notificationStore'
 
 const notificationStore = useNotificationStore()

@@ -1,24 +1,27 @@
-import mongoose from 'mongoose'
+import mongoose from "mongoose";
 
-const sessionSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-    index: true
+const sessionSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    jti: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    expiresAt: {
+      type: Date,
+      required: true,
+      index: { expires: 0 },
+    },
   },
-  jti: {
-    type: String,
-    required: true,
-    unique: true
+  {
+    timestamps: true,
   },
-  expiresAt: {
-    type: Date,
-    required: true,
-    index: { expires: 0 }
-  }
-}, {
-  timestamps: true
-})
+);
 
-export default mongoose.model('Session', sessionSchema)
+export default mongoose.model("Session", sessionSchema);

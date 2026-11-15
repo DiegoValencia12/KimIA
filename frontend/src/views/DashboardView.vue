@@ -1,128 +1,108 @@
 
 <template>
   <main class="dashboard">
-    <header class="header">
-      <div class="header-left">
-        <button
-          class="menu-button"
-          type="button"
-          aria-label="Abrir menú"
-          @click="menuOpen = !menuOpen"
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
+    <MenuBarComponent
+      :chats="chats"
+      :active-chat-id="activeChatId"
+      :loading="historyLoading"
+      :error="historyError"
+      @new-chat="handleNewChat"
+      @select-chat="handleSelectChat"
+      @delete-chat="handleDeleteChat"
+    />
 
-        <div class="logo">KIMIA</div>
-      </div>
+    <div class="dashboard-main">
+      <header class="header">
+        <UserMenuComponent />
+      </header>
 
-      <UserMenuComponent />
-    </header>
-
-    <Teleport to="body">
-      <div
-        v-if="menuOpen"
-        class="menu-overlay"
-        @click="menuOpen = false"
-      ></div>
-
-      <MenuBarComponent
-        v-if="menuOpen"
-        :chats="chats"
-        :active-chat-id="activeChatId"
-        :loading="historyLoading"
-        :error="historyError"
-        @new-chat="handleNewChat"
-        @select-chat="handleSelectChat"
-        @delete-chat="handleDeleteChat"
-        @click.stop
-      />
-    </Teleport>
-
-    <section
-      class="dashboard-content"
-      :class="{ 'conversation-mode': activeChatId }"
-    >
-      <div
-        v-if="messages.length === 0 && !loading"
-        class="welcome"
+      <section
+        class="dashboard-content"
+        :class="{ 'conversation-mode': activeChatId }"
       >
-        <h1>KIMIA</h1>
+        <div
+          v-if="messages.length === 0 && !loading"
+          class="welcome"
+        >
+          <h1>KIMIA</h1>
 
-        <p>
-          KIMIA combina inteligencia artificial, OCR y Web Scraping
-          para buscar, procesar y analizar información pública,
-          convirtiendo datos dispersos en respuestas claras y relevantes.
+          <p>
+            KIMIA combina inteligencia artificial, OCR y Web Scraping
+            para buscar, procesar y analizar información pública,
+            convirtiendo datos dispersos en respuestas claras y relevantes.
+          </p>
+        </div>
+
+        <div
+          v-else
+          ref="conversationContainer"
+          class="conversation"
+        >
+          <ChatMessage
+            v-for="(message, index) in messages"
+            :key="message._id || `${message.role}-${index}`"
+            :message="message"
+          />
+
+          <div
+            v-if="loading"
+            class="typing-row"
+            role="status"
+            aria-label="KIMIA está escribiendo"
+          >
+            <div class="typing-avatar">
+              K
+            </div>
+
+            <div class="typing-bubble">
+              <span class="typing-label">
+                KIMIA está escribiendo
+              </span>
+
+              <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p v-if="pageError" class="page-error">
+          {{ pageError }}
         </p>
-      </div>
 
-      <div
-        v-else
-        ref="conversationContainer"
-        class="conversation"
-      >
-        <article
-          v-for="(message, index) in messages"
-          :key="message._id || `${message.role}-${index}`"
-          class="message"
-          :class="message.role"
-        >
-          <div class="message-label">
-            {{ message.role === 'user' ? 'Tú' : 'KIMIA' }}
-          </div>
+        <div class="question-box">
+          <textarea
+            ref="questionInput"
+            v-model="messageInput"
+            placeholder="Pregunta lo que quieras a KIMIA..."
+            rows="1"
+            :disabled="loading || historyLoading"
+            @input="adjustTextarea"
+            @keydown.enter.exact.prevent="handleSendMessage"
+          ></textarea>
 
-          <div class="message-content">
-            {{ message.content }}
-          </div>
-        </article>
+          <button
+            type="button"
+            class="send-button"
+            :disabled="
+              loading ||
+              historyLoading ||
+              !messageInput.trim()
+            "
+            aria-label="Enviar mensaje"
+            @click="handleSendMessage"
+          >
+            <img src="/icons/send.svg" alt="" />
+          </button>
+        </div>
 
-        <article
-          v-if="loading"
-          class="message assistant"
-        >
-          <div class="message-label">KIMIA</div>
-
-          <div class="message-content loading-response">
-            Generando respuesta...
-          </div>
-        </article>
-      </div>
-
-      <p v-if="pageError" class="page-error">
-        {{ pageError }}
-      </p>
-
-      <div class="question-box">
-        <textarea
-          ref="questionInput"
-          v-model="messageInput"
-          placeholder="Pregunta lo que quieras a KIMIA..."
-          rows="1"
-          :disabled="loading || historyLoading"
-          @input="adjustTextarea"
-          @keydown.enter.exact.prevent="handleSendMessage"
-        ></textarea>
-
-        <button
-          type="button"
-          class="send-button"
-          :disabled="
-            loading ||
-            historyLoading ||
-            !messageInput.trim()
-          "
-          aria-label="Enviar mensaje"
-          @click="handleSendMessage"
-        >
-          <img src="/icons/send.svg" alt="" />
-        </button>
-      </div>
-
-      <p class="input-hint">
-        Enter para enviar · Shift + Enter para salto de línea
-      </p>
-    </section>
+        <p class="input-hint">
+          Enter para enviar · Shift + Enter para salto de línea
+        </p>
+      </section>
+    </div>
   </main>
 </template>
 
@@ -139,6 +119,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import MenuBarComponent from '@/components/MenuBarComponent.vue'
 import UserMenuComponent from '@/components/UserMenuComponent.vue'
+import ChatMessage from '@/components/chat/ChatMessage.vue'
 
 import { useChat } from '@/composables/useChat.js'
 import { useChatHistory } from '@/composables/useChatHistory.js'
@@ -146,7 +127,6 @@ import { useChatHistory } from '@/composables/useChatHistory.js'
 const route = useRoute()
 const router = useRouter()
 
-const menuOpen = ref(false)
 const messageInput = ref('')
 const questionInput = ref(null)
 const conversationContainer = ref(null)
@@ -224,7 +204,6 @@ function scrollToBottom() {
 }
 
 async function handleNewChat() {
-  menuOpen.value = false
   messageInput.value = ''
 
   clearMessages()
@@ -239,8 +218,6 @@ async function handleNewChat() {
 
 async function handleSelectChat(chatId) {
   if (!chatId) return
-
-  menuOpen.value = false
 
   await router.push({
     name: 'chat',
@@ -296,90 +273,62 @@ watch(
 
 <style scoped>
 .dashboard {
-  min-height: 100vh;
   width: 100%;
+  height: 100vh;
+  min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  overflow: hidden;
   background: #09090B;
   color: #FAFAFA;
+  box-sizing: border-box;
+}
+
+.dashboard-main {
+  flex: 1;
+  width: 0;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .header {
   position: relative;
   z-index: 110;
-  flex-shrink: 0;
+  flex: 0 0 70px;
   width: 100%;
   height: 70px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 0 30px;
   box-sizing: border-box;
   background: #111113;
   border-bottom: 1px solid #27272A;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-
-.menu-button {
-  width: 40px;
-  height: 40px;
+.dashboard-content {
+  flex: 1;
+  width: 100%;
+  height: 0;
+  min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 0;
-  border: 1px solid #27272A;
-  border-radius: 7px;
-  background: #18181B;
-  cursor: pointer;
-}
-
-.menu-button span {
-  width: 17px;
-  height: 2px;
-  border-radius: 2px;
-  background: #A1A1AA;
-}
-
-.menu-button:hover {
-  border-color: #3F3F46;
-  background: #27272A;
-}
-
-.menu-button:hover span {
-  background: #FAFAFA;
-}
-
-.logo {
-  color: #FAFAFA;
-  font-size: 21px;
-  font-weight: 800;
-  letter-spacing: 3px;
-}
-
-.menu-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 90;
-}
-
-.dashboard-content {
-  width: 900px;
-  max-width: calc(100% - 60px);
-  margin: 0 auto;
-  padding-top: 65px;
-  padding-bottom: 24px;
+  padding: 40px 40px 24px;
   box-sizing: border-box;
+  overflow: hidden;
+}
+
+.dashboard-content:not(.conversation-mode) {
+  justify-content: center;
+  align-items: center;
 }
 
 .welcome {
+  width: 100%;
   max-width: 720px;
   margin: 0 auto 35px;
   text-align: center;
@@ -402,7 +351,10 @@ watch(
 
 .question-box {
   position: relative;
+  flex-shrink: 0;
   width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 .question-box textarea {
@@ -474,53 +426,105 @@ watch(
 }
 
 .conversation-mode {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
   padding-top: 28px;
 }
 
 .conversation {
   flex: 1;
-  min-height: 180px;
-  max-height: calc(100vh - 250px);
+  height: 0;
+  min-height: 0;
+  max-height: none;
   overflow-y: auto;
   padding: 0 4px 24px;
   scrollbar-color: #3F3F46 transparent;
 }
 
-.message {
-  max-width: 780px;
-  margin: 0 auto 26px;
-  padding: 18px 20px;
-  border: 1px solid #27272A;
-  border-radius: 12px;
-  background: #111113;
+.typing-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  width: 100%;
+  margin: 12px 0 26px;
+  padding: 0;
+  box-sizing: border-box;
+  animation: typing-appear 0.25s ease-out;
 }
-
-.message.user {
-  background: #18181B;
-}
-
-.message-label {
-  margin-bottom: 10px;
-  color: #A5B4FC;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-.message-content {
-  color: #E4E4E7;
+.typing-avatar {
+  display: flex;
+  flex: 0 0 34px;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #312E81;
+  color: #C7D2FE;
   font-size: 14px;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  font-weight: 700;
 }
 
-.loading-response {
-  color: #A1A1AA;
+.typing-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px 15px;
+  border: 1px solid #303036;
+  border-radius: 15px 15px 15px 4px;
+  background: #1C1C20;
+}
+
+.typing-label {
+  color: #A5B4FC;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.typing-dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 10px;
+}
+
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #A5B4FC;
+  animation: typing-bounce 1.2s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes typing-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+
+  30% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+
+@keyframes typing-appear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .conversation-mode .question-box {
@@ -528,15 +532,20 @@ watch(
 }
 
 .input-hint {
-  margin: 10px 0 0;
+  flex-shrink: 0;
+  margin: 10px auto 0;
   color: #52525B;
   font-size: 11px;
   text-align: center;
 }
 
 .page-error {
-  margin: 14px 0;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 900px;
+  margin: 14px auto;
   padding: 12px;
+  box-sizing: border-box;
   border: 1px solid #7F1D1D;
   border-radius: 8px;
   background: #271313;
@@ -552,8 +561,7 @@ watch(
   }
 
   .dashboard-content {
-    max-width: calc(100% - 32px);
-    padding-top: 40px;
+    padding: 30px 16px 20px;
   }
 
   .welcome h1 {
@@ -564,12 +572,14 @@ watch(
     font-size: 14px;
   }
 
-  .conversation {
-    max-height: calc(100vh - 230px);
+  .typing-avatar {
+    flex-basis: 29px;
+    width: 29px;
+    height: 29px;
   }
 
-  .message {
-    padding: 14px;
+  .typing-bubble {
+    padding: 10px 12px;
   }
 }
 </style>

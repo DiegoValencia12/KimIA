@@ -2,25 +2,31 @@
 <template>
   <div class="user-menu">
     <button
-      class="user-button"
+      class="profile-trigger"
       type="button"
       aria-label="Menú de usuario"
+      :aria-expanded="menuOpen"
       @click="menuOpen = !menuOpen"
     >
-      <img src="/icons/user.svg" alt="" />
+      <span class="user-name">{{ userName }}</span>
+
+      <svg
+        class="chevron"
+        :class="{ rotated: menuOpen }"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="m7 10 5 5 5-5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
     </button>
 
     <Transition name="dropdown">
       <div v-if="menuOpen" class="dropdown-menu">
         <div class="user-info">
-          <div class="user-avatar">
-            <img src="/icons/user.svg" alt="" />
-          </div>
-
-          <div class="user-details">
-            <strong>{{ authStore.user?.displayName || 'Usuario' }}</strong>
-            <span>{{ authStore.user?.email }}</span>
-          </div>
+          <strong>{{ userName }}</strong>
+          <span>{{ authStore.user?.email }}</span>
         </div>
 
         <div class="menu-divider"></div>
@@ -30,7 +36,7 @@
           class="menu-item"
           @click="handleSettings"
         >
-          <span>Configuración</span>
+          Configuración
         </button>
 
         <button
@@ -39,7 +45,7 @@
           :disabled="loggingOut"
           @click="handleLogout"
         >
-          <span>{{ loggingOut ? 'Cerrando sesión...' : 'Cerrar sesión' }}</span>
+          {{ loggingOut ? 'Cerrando sesión...' : 'Cerrar sesión' }}
         </button>
       </div>
     </Transition>
@@ -47,7 +53,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
@@ -59,9 +65,13 @@ const notifications = useNotificationStore()
 const menuOpen = ref(false)
 const loggingOut = ref(false)
 
+const userName = computed(() => {
+  return authStore.user?.displayName || 'Usuario'
+})
+
 function handleSettings() {
   menuOpen.value = false
-  console.log('....');
+  console.log('....')
 }
 
 async function handleLogout() {
@@ -83,90 +93,90 @@ async function handleLogout() {
 <style scoped>
 .user-menu {
   position: relative;
-}
-
-.user-button {
-  width: 40px;
-  height: 40px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 1px solid #27272A;
-  border-radius: 50%;
-  background: #18181B;
+}
+
+.profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #E4E4E7;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
 
-.user-button img {
-  width: 19px;
-  height: 19px;
-  opacity: 0.7;
+.profile-trigger:hover,
+.profile-trigger[aria-expanded="true"] {
+  background: #202024;
 }
 
-.user-button:hover {
-  border-color: #6366F1;
-  background: #27272A;
+.user-name {
+  max-width: 180px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  width: 15px;
+  height: 15px;
+  color: #A1A1AA;
+  transition: transform 0.2s ease;
+}
+
+.chevron.rotated {
+  transform: rotate(180deg);
 }
 
 .dropdown-menu {
   position: absolute;
-  top: 52px;
+  top: calc(100% + 10px);
   right: 0;
-  width: 250px;
-  padding: 10px;
-  border: 1px solid #27272A;
+  z-index: 200;
+  width: 245px;
+  padding: 9px;
+  border: 1px solid #303036;
   border-radius: 12px;
   background: #18181B;
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
-  z-index: 200;
 }
 
 .user-info {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 8px;
-}
-
-.user-avatar {
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: #27272A;
-}
-
-.user-avatar img {
-  width: 19px;
-  height: 19px;
-}
-
-.user-details {
-  display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
+  padding: 12px 10px;
   min-width: 0;
 }
 
-.user-details strong {
+.user-info strong {
+  overflow: hidden;
   color: #FAFAFA;
   font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.user-details span {
+.user-info span {
+  overflow: hidden;
   color: #A1A1AA;
   font-size: 11px;
-  overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .menu-divider {
   height: 1px;
-  margin: 7px 0;
-  background: #27272A;
+  margin: 5px 0;
+  background: #303036;
 }
 
 .menu-item {
@@ -179,6 +189,7 @@ async function handleLogout() {
   text-align: left;
   font-size: 13px;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
 
 .menu-item:hover {
@@ -207,6 +218,13 @@ async function handleLogout() {
 .dropdown-enter-from,
 .dropdown-leave-to {
   opacity: 0;
-  transform: translateY(-8px);
+  transform: translateY(-7px);
+}
+
+@media (max-width: 640px) {
+  .user-name {
+    max-width: 120px;
+    font-size: 12px;
+  }
 }
 </style>

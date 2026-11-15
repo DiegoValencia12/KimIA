@@ -6,22 +6,19 @@
         "promptType": "define",
         "text": "={{ $json.body.message }}",
         "options": {
-          "systemMessage": "Eres un agente inteligente basado en LLM para la consulta confiable de datos abiertos no estructurados con validación automática.",
+          "systemMessage": "Eres un asistente de investigación. Si el usuario te pide buscar algo, usa la herramienta 'Bing Search'. Si te da una URL o te pide analizar una página, usa la herramienta 'Scraper'. Si solo saluda, responde amablemente sin usar herramientas.",
           "maxIterations": 5
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
-      "position": [
-        208,
-        0
-      ],
-      "id": "0c863ade-316e-4b23-b2f2-c6947ea16909",
+      "position": [-64, -80],
+      "id": "d1542b05-939d-4818-8e3b-5d92cb706ea4",
       "name": "AI Agent"
     },
     {
       "parameters": {
-        "model": "={{ $('Webhook').first().json.body.model || 'qwen3:0.6b' }}",
+        "model": "={{ $('Webhook').first().json.body.model || 'qwen2.5:7b' }}",
         "options": {
           "keepAlive": "30m",
           "numCtx": 8192
@@ -29,15 +26,12 @@
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
       "typeVersion": 1,
-      "position": [
-        208,
-        208
-      ],
-      "id": "25cc3594-374b-4efd-941e-13197b1e8298",
+      "position": [-64, 128],
+      "id": "aeae6a7d-8a26-4e88-b16f-9f15cd588296",
       "name": "Ollama Chat Model",
       "credentials": {
         "ollamaApi": {
-          "id": "WSYaPjycAZrkBQTe",
+          "id": "7BfrBIUSyJvZ04zg",
           "name": "Ollama account"
         }
       }
@@ -49,11 +43,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.4,
-      "position": [
-        304,
-        416
-      ],
-      "id": "dacf47f3-dd50-4266-8451-67bd824d6fd1",
+      "position": [48, 336],
+      "id": "831886c9-f283-4988-963c-83ca738d0b7e",
       "name": "Simple Memory"
     },
     {
@@ -65,46 +56,69 @@
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.2,
-      "position": [
-        0,
-        0
-      ],
-      "id": "5ce73376-4d94-42cd-bc8a-5079f22eace7",
+      "position": [-304, -80],
+      "id": "5d56ed77-7b2f-4ca5-ad35-c4231a5d80b8",
       "name": "Webhook",
       "webhookId": "95062f5c-397e-4da9-9f8a-82f5ee6d8ae0"
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { \"response\": $json.output } }}",
+        "responseBody": "={ \"response\": $json.output || $json.content || $json.text || \"Sin respuesta\" }",
         "options": {}
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [
-        576,
-        0
-      ],
-      "id": "554ccb09-3a8d-4382-ad25-986509104949",
+      "position": [304, -80],
+      "id": "5882ef35-6432-434e-ac8e-f563931b8688",
       "name": "Respond to Webhook"
     },
     {
       "parameters": {
-        "endpointUrl": "http://localhost:5678/mcp/kimia-tools",
+        "toolDescription": "Busca en internet y devuelve resultados con título y URL.",
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/kimia-tools",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"search\",\n  \"query\": \"{query}\"\n}",
         "options": {}
       },
-      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
-      "typeVersion": 1.4,
-      "position": [
-        352,
-        208
-      ],
-      "id": "adace142-320c-43ff-ad45-1fb3d02003c3",
-      "name": "Tools"
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [144, 128],
+      "id": "a7d6eb3c-f211-481e-8c53-46965185590b",
+      "name": "Bing Search Tool"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Descarga una página web y extrae su texto principal.",
+        "method": "POST",
+        "url": "http://backend:3000/api/tools/scrape",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{ $fromAI('url', 'La URL exacta de la página a scrapear') }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [240, 128],
+      "id": "bdfea4c1-1127-40d7-ad9b-de69eea21972",
+      "name": "Scraper Tool"
     }
   ],
   "pinData": {},
   "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Ollama Chat Model": {
       "ai_languageModel": [
         [
@@ -127,12 +141,23 @@
         ]
       ]
     },
-    "Webhook": {
-      "main": [
+    "Bing Search Tool": {
+      "ai_tool": [
         [
           {
             "node": "AI Agent",
-            "type": "main",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scraper Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
             "index": 0
           }
         ]
@@ -148,17 +173,6 @@
           }
         ]
       ]
-    },
-    "Tools": {
-      "ai_tool": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
     }
   },
   "active": true,
@@ -166,12 +180,12 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "603a58be-fdd0-4110-9136-6ff148ccd625",
+  "versionId": "ff3a5a21-cab0-4586-b538-3f3939916ef0",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "d44ed3d99a0bef3335ac8642c5cbe89f9020f420ca6a34de10f31d8af0711831"
+    "instanceId": "e3a5de4e1de8d6834086f14623ea16b8a76f77819770e6b5c5f0420f871f6790"
   },
   "nodeGroups": [],
-  "id": "hVWLNT8m66ewYFOX",
+  "id": "OeQwruNUqB34Zc55",
   "tags": []
 }

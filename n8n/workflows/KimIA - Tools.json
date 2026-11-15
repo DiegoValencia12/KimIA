@@ -1,0 +1,201 @@
+{
+  "name": "KimIA - Tools",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kimia-tools",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "75eda4a7-be16-432a-8c03-8dbd666e77e8",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        80
+      ],
+      "webhookId": "kimia-tools"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "r1",
+                    "leftValue": "={{ $json.action ?? $json.body?.action }}",
+                    "rightValue": "search",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "search"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "998ffa37-b5fb-435e-bc51-c277b4dfa71a",
+      "name": "Route by action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -256,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.bing.com/search?q={{ encodeURIComponent($json.body?.query ?? $json.query ?? '') }}&format=rss&count=10&setlang=es&cc=MX",
+        "options": {
+          "response": {},
+          "timeout": 20000
+        }
+      },
+      "id": "5d58e9b5-e26b-4b17-a5ab-57a4af6132e9",
+      "name": "HTTP Search (Bing RSS)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        -80
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\nif (input.error) {\n  const message = typeof input.error === 'string' ? input.error : input.error.message || JSON.stringify(input.error);\n  return [{ json: { content: `ERROR N8N (search): ${message}` } }];\n}\n\nconst statusCode = Number(input.statusCode || 0);\nif (statusCode >= 400) return [{ json: { content: `ERROR HTTP ${statusCode} en Bing RSS` } }];\n\nconst xml = String(input.body ?? input.data ?? '');\nif (xml.length < 50) return [{ json: { content: `ERROR: respuesta vacía (len=${xml.length})` } }];\n\nif (!/<rss\\b|<feed\\b/i.test(xml)) return [{ json: { content: `ERROR: Bing no devolvió RSS.` } }];\n\nconst decode = (value) => String(value ?? '').replace(/<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>/g, '$1').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '\"').replace(/&#39;/g, \"'\").replace(/&#(\\d+);/g, (_, number) => String.fromCodePoint(Number(number))).replace(/<[^>]+>/g, '').replace(/\\s+/g, ' ').trim();\n\nconst results = [];\nconst itemRegex = /<item\\b[^>]*>([\\s\\S]*?)<\\/item>/gi;\nlet match;\n\nwhile ((match = itemRegex.exec(xml)) !== null && results.length < 10) {\n  const block = match[1];\n  const titleMatch = block.match(/<title\\b[^>]*>([\\s\\S]*?)<\\/title>/i);\n  const linkMatch = block.match(/<link\\b[^>]*>([\\s\\S]*?)<\\/link>/i);\n  if (!titleMatch || !linkMatch) continue;\n\n  const title = decode(titleMatch[1]);\n  const url = decode(linkMatch[1]);\n\n  if (title && /^https?:\\/\\//i.test(url)) results.push(`${results.length + 1}. ${title}\\n   ${url}`);\n}\n\nif (!results.length) return [{ json: { content: `Bing RSS sin resultados utilizables.` } }];\n\nreturn [{ json: { content: `Resultados (${results.length}):\\n\\n${results.join('\\n\\n')}` } }];"
+      },
+      "id": "873b2552-197f-40b8-9df9-15a98459b719",
+      "name": "Parse Search (RSS)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { content: `Acción no reconocida.` } }];"
+      },
+      "id": "935cceb2-ff98-4e02-9d38-e9e4f9050bcc",
+      "name": "Fallback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "789d526c-c5ae-46ae-8abe-d3c094b95753",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        80
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Route by action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by action": {
+      "main": [
+        [
+          {
+            "node": "HTTP Search (Bing RSS)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Search (Bing RSS)": {
+      "main": [
+        [
+          {
+            "node": "Parse Search (RSS)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Search (RSS)": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "db39822d-dda3-40af-8dcc-d75f28c26667",
+  "meta": {
+    "instanceId": "e3a5de4e1de8d6834086f14623ea16b8a76f77819770e6b5c5f0420f871f6790"
+  },
+  "nodeGroups": [],
+  "id": "4XwR7ODRch7L6BoJ",
+  "tags": []
+}
