@@ -1,0 +1,126 @@
+{
+  "name": "Tools",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "Tools"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0db9a6b7-f094-4eec-898b-45cfa9ae2992",
+      "name": "MCP Server Trigger",
+      "webhookId": "87e93843-0994-4869-853d-3a824d20aa06"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Descarga una página web y extrae su texto principal.",
+        "method": "POST",
+        "url": "http://backend:3000/api/tools/scrape",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{ $fromAI('url', 'La URL exacta de la página a scrapear') }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        272,
+        192
+      ],
+      "id": "bf37fb64-ce47-4f74-9df0-a6c8f8ac8533",
+      "name": "Scraper Tool"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "e88gJleDiIMxW4B2",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/e88gJleDiIMxW4B2",
+          "cachedResultName": "Bing Search"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "Search",
+            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        96,
+        192
+      ],
+      "id": "1a2b1573-e8ff-42fb-a94d-af712daa5391",
+      "name": "Call 'Bing Search'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Scraper Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Bing Search'": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "75bf4d41-752b-460f-9f70-94f3b7ea40cb",
+  "meta": {
+    "instanceId": "78fe0c9fb5bcc9f96ebe72655015726e92ac151385f4cfa6f8eaa49e99404346"
+  },
+  "nodeGroups": [],
+  "id": "QTSbxmTan6PDSM63",
+  "tags": []
+}
