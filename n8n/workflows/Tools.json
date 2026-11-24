@@ -11,7 +11,7 @@
         0,
         0
       ],
-      "id": "0db9a6b7-f094-4eec-898b-45cfa9ae2992",
+      "id": "f44dfa99-1688-428d-9472-1f8bc6b71714",
       "name": "MCP Server Trigger",
       "webhookId": "87e93843-0994-4869-853d-3a824d20aa06"
     },
@@ -31,11 +31,12 @@
         272,
         192
       ],
-      "id": "bf37fb64-ce47-4f74-9df0-a6c8f8ac8533",
+      "id": "36c9a9bd-14ee-48aa-9bef-6604169ebf20",
       "name": "Scraper Tool"
     },
     {
       "parameters": {
+        "description": "Busca información actualizada en internet usando Bing y devuelve títulos y URLs.",
         "workflowId": {
           "__rl": true,
           "value": "e88gJleDiIMxW4B2",
@@ -46,8 +47,8 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "action": "Search",
-            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', ``, 'string') }}"
+            "action": "search",
+            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', `={{ $fromAI('query', 'Términos o palabras clave a buscar en internet', 'string') }}`, 'string') }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -82,7 +83,7 @@
         96,
         192
       ],
-      "id": "1a2b1573-e8ff-42fb-a94d-af712daa5391",
+      "id": "55ad816e-b5fe-4442-9c44-11d201318c51",
       "name": "Call 'Bing Search'"
     }
   ],
@@ -111,16 +112,16 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "75bf4d41-752b-460f-9f70-94f3b7ea40cb",
+  "versionId": "02fae997-3936-440d-81b1-2bd36c1fc584",
   "meta": {
-    "instanceId": "78fe0c9fb5bcc9f96ebe72655015726e92ac151385f4cfa6f8eaa49e99404346"
+    "instanceId": "492645d6dfd13ed8b1800e02fe587ce4c4d224fed3d103ba03a3db6f5c226abf"
   },
   "nodeGroups": [],
-  "id": "QTSbxmTan6PDSM63",
+  "id": "PUPBCTJr9rHw2yRt",
   "tags": []
 }
