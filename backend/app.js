@@ -1,4 +1,5 @@
 import express from "express";
+import path from "path";
 import chatsRoutes from "./routes/chats.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import { scrapeUrl } from "./controllers/tools.controller.js";
@@ -33,6 +34,14 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json({ limit: "1mb" }));
+
+app.use(
+  "/uploads",
+  express.static(path.resolve("uploads"), {
+    maxAge: "1d",
+    fallthrough: true,
+  }),
+);
 
 app.get("/api/health", (req, res) => {
   const { model } = getOllamaConfig();

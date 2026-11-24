@@ -3,6 +3,7 @@ import Message from "../models/Message.js";
 import Response from "../models/Response.js";
 import Research from "../models/Research.js";
 import ResearchDocument from "../models/ResearchDocument.js";
+import path from "path";
 import { runAgent } from "../agent/agent-research.js";
 import { useN8nAgent } from "../config/ollama.js";
 
@@ -41,9 +42,7 @@ export const getChatHistory = async (req, res, next) => {
     });
 
     if (!chat) {
-      return res.status(404).json({
-        error: "Chat no encontrado",
-      });
+      return res.status(404).json({ error: "Chat no encontrado" });
     }
 
     const messages = await Message.find({
@@ -86,11 +85,13 @@ export const getChatHistory = async (req, res, next) => {
 
 export const sendMessage = async (req, res, next) => {
   try {
-    const { content } = req.body;
+    const rawContent = req.body?.content;
+    const content = typeof rawContent === "string" ? rawContent.trim() : "";
+    const uploadedFile = req.file || null;
 
-    if (typeof content !== "string" || !content.trim()) {
+    if (!content && !uploadedFile) {
       return res.status(400).json({
-        error: "El contenido del mensaje es obligatorio",
+        error: "El mensaje debe tener texto o un PDF adjunto",
       });
     }
 
@@ -100,12 +101,35 @@ export const sendMessage = async (req, res, next) => {
     });
 
     if (!chat) {
-      return res.status(404).json({
-        error: "Chat no encontrado",
-      });
+      return res.status(404).json({ error: "Chat no encontrado" });
     }
 
-    const userContent = content.trim();
+    let attachment = null;
+
+    if (uploadedFile) {
+      attachment = {
+        id: path.parse(uploadedFile.filename).name,
+        name: uploadedFile.originalname,
+        type: "application/pdf",
+        url: `/uploads/${uploadedFile.filename}`,
+        size: uploadedFile.size,
+      };
+
+      console.log(
+        `📎 PDF recibido: "${attachment.name}" (${Math.round(
+          attachment.size / 1024,
+        )} KB) → ${attachment.url}`,
+      );
+    } else {
+      console.log(`💬 Mensaje de texto normal (${content.length} chars)`);
+    }
+
+    const agentInput =
+      content ||
+      (attachment
+        ? `El usuario adjuntó un PDF llamado "${attachment.name}".`
+        : "");
+
     const n8nMode = useN8nAgent();
     let assistantContent = "";
     let metadata = { title: "", url: "" };
@@ -113,14 +137,23 @@ export const sendMessage = async (req, res, next) => {
 
     if (n8nMode) {
       try {
-        const n8nUrl = process.env.N8N_URL || "http://n8n:5678";
-        const response = await fetch(`${n8nUrl}/webhook/KimIA/chat`, {
+        const n8nUrl =
+          process.env.N8N_URL ||
+          process.env.N8N_WEBHOOK_URL ||
+          "http://n8n:5678/webhook/KimIA/chat";
+
+        const webhookUrl = n8nUrl.includes("/webhook/")
+          ? n8nUrl
+          : `${n8nUrl.replace(/\/$/, "")}/webhook/KimIA/chat`;
+
+        const response = await fetch(webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            message: userContent,
+            message: agentInput,
             sessionId: chat._id.toString(),
             model: "qwen2.5:7b",
+            attachment,
           }),
           signal: AbortSignal.timeout(600000),
         });
@@ -138,7 +171,7 @@ export const sendMessage = async (req, res, next) => {
       }
     } else {
       try {
-        const result = await runAgent(userContent);
+        const result = await runAgent(agentInput);
 
         if (result.documentCount > 0) {
           const lastDoc = await ResearchDocument.findOne({
@@ -174,7 +207,8 @@ export const sendMessage = async (req, res, next) => {
     const userMessage = await Message.create({
       chatId: chat._id,
       role: "user",
-      content: userContent,
+      content,
+      attachment,
     });
 
     const assistantMessage = await Message.create({
@@ -190,7 +224,7 @@ export const sendMessage = async (req, res, next) => {
     });
 
     if (chat.title === "Nuevo chat") {
-      chat.title = userContent.slice(0, 60);
+      chat.title = (content || attachment?.name || "Nuevo chat").slice(0, 60);
     }
 
     chat.updatedAt = new Date();
@@ -202,7 +236,7 @@ export const sendMessage = async (req, res, next) => {
         messageId: assistantMessage._id,
         content: assistantContent,
         model: modelUsed,
-        metadata: metadata,
+        metadata,
       },
     });
   } catch (error) {
@@ -218,9 +252,7 @@ export const deleteChat = async (req, res, next) => {
     });
 
     if (!chat) {
-      return res.status(404).json({
-        error: "Chat no encontrado",
-      });
+      return res.status(404).json({ error: "Chat no encontrado" });
     }
 
     const messages = await Message.find({

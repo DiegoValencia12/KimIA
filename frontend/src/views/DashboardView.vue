@@ -87,7 +87,9 @@
                                 v-if="selectedPdf"
                                 :document="selectedPdf"
                                 :visible="showPdfViewer"
+                                :removable="isPdfPending"
                                 @toggle-viewer="showPdfViewer = !showPdfViewer"
+                                @remove="handleRemovePdf"
                             />
 
                             <textarea
@@ -115,10 +117,26 @@
                                 type="button"
                                 class="viewer-toggle-button"
                                 :class="{ active: showPdfViewer }"
-                                aria-label="Mostrar u ocultar visor PDF"
+                                :aria-label="
+                                    showPdfViewer
+                                        ? 'Ocultar visor PDF'
+                                        : 'Mostrar visor PDF'
+                                "
+                                :title="
+                                    showPdfViewer
+                                        ? 'Ocultar visor PDF'
+                                        : 'Mostrar visor PDF'
+                                "
                                 @click="showPdfViewer = !showPdfViewer"
                             >
-                                <img src="/icons/eye-off.svg" alt="" />
+                                <img
+                                    :src="
+                                        showPdfViewer
+                                            ? '/icons/eye-off.svg'
+                                            : '/icons/eye.svg'
+                                    "
+                                    alt=""
+                                />
                             </button>
 
                             <button
@@ -200,6 +218,8 @@ const selectedPdf = ref(null);
 const showPdfViewer = ref(false);
 const pdfError = ref("");
 const localPdfs = ref({});
+
+const isPdfPending = ref(false);
 
 const pdfDocuments = computed(() => {
     return selectedPdf.value ? [selectedPdf.value] : [];
@@ -316,24 +336,37 @@ async function handleSendMessage() {
 
     messageInput.value = "";
 
-    let finalContent = content;
+    let fileToSend = null;
+    let localAttachment = null;
 
     if (selectedPdf.value) {
-        const pdfId = selectedPdf.value.id;
-        localPdfs.value[pdfId] = selectedPdf.value;
+        fileToSend = selectedPdf.value.file;
 
-        finalContent =
-            `[PDF:${pdfId}:${selectedPdf.value.name}]\n\n${content}`.trim();
+        localAttachment = {
+            id: selectedPdf.value.id,
+            name: selectedPdf.value.name,
+            type: "application/pdf",
+            url: null,
+            size: selectedPdf.value.file?.size ?? 0,
+        };
+
+        localPdfs.value[selectedPdf.value.id] = selectedPdf.value;
 
         selectedPdf.value = null;
         showPdfViewer.value = false;
+        isPdfPending.value = false;
     }
 
     await nextTick();
     adjustTextarea();
 
     try {
-        await sendMessage(finalContent, activeChatId.value);
+        await sendMessage(
+            content,
+            activeChatId.value,
+            fileToSend,
+            localAttachment,
+        );
         await nextTick();
         scrollToBottom();
     } catch (err) {
@@ -342,15 +375,43 @@ async function handleSendMessage() {
 }
 
 function handleViewPdf(pdfId) {
-    const pdf = localPdfs.value[pdfId];
-    if (pdf) {
-        selectedPdf.value = pdf;
-        showPdfViewer.value = true;
+    let pdf = localPdfs.value[pdfId];
+
+    if (!pdf) {
+        for (const msg of messages.value) {
+            if (msg.attachment?.id === pdfId) {
+                pdf = {
+                    id: msg.attachment.id,
+                    name: msg.attachment.name,
+                    source: msg.attachment.url,
+                    local: false,
+                };
+                break;
+            }
+        }
     }
+
+    if (!pdf) return;
+
+    if (selectedPdf.value?.id === pdf.id && showPdfViewer.value) {
+        showPdfViewer.value = false;
+        return;
+    }
+
+    selectedPdf.value = pdf;
+    showPdfViewer.value = true;
+    isPdfPending.value = false;
 }
 
 function openPdfPicker() {
     pdfInput.value?.click();
+}
+
+function handleRemovePdf() {
+    selectedPdf.value = null;
+    showPdfViewer.value = false;
+    isPdfPending.value = false;
+    pdfError.value = "";
 }
 
 async function handlePdfSelection(event) {
@@ -381,6 +442,7 @@ async function handlePdfSelection(event) {
 
         pdfError.value = "";
         showPdfViewer.value = true;
+        isPdfPending.value = true;
     } catch (err) {
         console.error("Error al procesar el archivo:", err);
         pdfError.value = "No se pudo leer el archivo seleccionado.";

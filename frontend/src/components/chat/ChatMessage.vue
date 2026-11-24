@@ -47,6 +47,13 @@ const emit = defineEmits(["view-pdf"]);
 const isUser = computed(() => props.message.role === "user");
 
 const parsedContent = computed(() => {
+    if (props.message.attachment) {
+        return {
+            attachment: props.message.attachment,
+            text: props.message.content || "",
+        };
+    }
+
     const content = props.message.content || "";
     const match = content.match(/^\[PDF:([^:]+):([^\]]+)\]\n*/);
 

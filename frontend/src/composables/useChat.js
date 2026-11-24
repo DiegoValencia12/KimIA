@@ -1,11 +1,10 @@
-
-import { ref } from 'vue';
+import { ref } from "vue";
 
 import {
   createChat,
   getChatHistory,
   sendChatMessage,
-} from '@/services/chatService.js';
+} from "@/services/chatService.js";
 
 function getPayload(result) {
   return result?.data ?? result;
@@ -36,12 +35,12 @@ function getMessages(result) {
 export function useChat({ router, refreshChats }) {
   const messages = ref([]);
   const loading = ref(false);
-  const error = ref('');
+  const error = ref("");
 
   let requestVersion = 0;
   let skipNextChatLoad = false;
 
-  function normalizeMessage(message, fallbackRole = 'assistant') {
+  function normalizeMessage(message, fallbackRole = "assistant") {
     return {
       id:
         message?._id ??
@@ -49,7 +48,8 @@ export function useChat({ router, refreshChats }) {
         message?.messageId ??
         `${Date.now()}-${Math.random()}`,
       role: message?.role ?? message?.sender ?? fallbackRole,
-      content: message?.content ?? message?.message ?? '',
+      content: message?.content ?? message?.message ?? "",
+      attachment: message?.attachment ?? null,
       model: message?.model ?? null,
       createdAt: message?.createdAt ?? message?.created_at ?? null,
     };
@@ -60,14 +60,14 @@ export function useChat({ router, refreshChats }) {
       requestVersion++;
       messages.value = [];
       loading.value = false;
-      error.value = '';
+      error.value = "";
       return;
     }
 
     const currentVersion = ++requestVersion;
 
     loading.value = true;
-    error.value = '';
+    error.value = "";
 
     try {
       const result = await getChatHistory(chatId);
@@ -84,7 +84,7 @@ export function useChat({ router, refreshChats }) {
         err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message ||
-        'No se pudo cargar la conversación.';
+        "No se pudo cargar la conversación.";
     } finally {
       if (currentVersion === requestVersion) {
         loading.value = false;
@@ -93,7 +93,7 @@ export function useChat({ router, refreshChats }) {
   }
 
   async function startNewChat() {
-    error.value = '';
+    error.value = "";
 
     try {
       const result = await createChat();
@@ -101,7 +101,7 @@ export function useChat({ router, refreshChats }) {
 
       if (!chatId) {
         throw new Error(
-          'El servidor no devolvió el identificador de la conversación.',
+          "El servidor no devolvió el identificador de la conversación.",
         );
       }
 
@@ -113,7 +113,7 @@ export function useChat({ router, refreshChats }) {
       await refreshChats?.();
 
       await router.push({
-        name: 'chat',
+        name: "chat",
         params: { chatId: String(chatId) },
       });
 
@@ -125,18 +125,23 @@ export function useChat({ router, refreshChats }) {
         err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message ||
-        'No se pudo crear la conversación.';
+        "No se pudo crear la conversación.";
 
       return null;
     }
   }
 
-  async function sendMessage(content, chatId) {
-    const text = content?.trim();
+  async function sendMessage(
+    content,
+    chatId,
+    file = null,
+    localAttachment = null,
+  ) {
+    const text = content?.trim() || "";
 
-    if (!text || loading.value) return false;
+    if ((!text && !file) || loading.value) return false;
 
-    error.value = '';
+    error.value = "";
 
     let currentChatId = chatId;
 
@@ -150,18 +155,19 @@ export function useChat({ router, refreshChats }) {
 
     const userMessage = normalizeMessage(
       {
-        role: 'user',
+        role: "user",
         content: text,
+        attachment: localAttachment,
         createdAt: new Date().toISOString(),
       },
-      'user',
+      "user",
     );
 
     messages.value.push(userMessage);
     loading.value = true;
 
     try {
-      const result = await sendChatMessage(currentChatId, text);
+      const result = await sendChatMessage(currentChatId, text, file);
 
       if (currentVersion !== requestVersion) return false;
 
@@ -174,9 +180,7 @@ export function useChat({ router, refreshChats }) {
         payload;
 
       if (responseMessage?.content || responseMessage?.message) {
-        messages.value.push(
-          normalizeMessage(responseMessage, 'assistant'),
-        );
+        messages.value.push(normalizeMessage(responseMessage, "assistant"));
       }
 
       await refreshChats?.();
@@ -189,7 +193,7 @@ export function useChat({ router, refreshChats }) {
         err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message ||
-        'No se pudo enviar el mensaje.';
+        "No se pudo enviar el mensaje.";
 
       return false;
     } finally {
@@ -210,7 +214,7 @@ export function useChat({ router, refreshChats }) {
     requestVersion++;
     messages.value = [];
     loading.value = false;
-    error.value = '';
+    error.value = "";
   }
 
   return {

@@ -37,3 +37,7 @@ coverage/
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Ignorar los PDFs subidos por los usuarios
+backend/uploads/*
+!backend/uploads/.gitkeep
