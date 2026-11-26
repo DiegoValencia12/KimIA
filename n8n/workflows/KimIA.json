@@ -4,7 +4,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ $json.body.message }}",
+        "text": "=={{ ($json.body.message || 'El usuario adjuntó un PDF sin escribir ningún mensaje.') + ($json.body.attachment ? '\\n\\n[Adjunto PDF: attachment:' + $json.body.attachment.id + ', nombre: ' + $json.body.attachment.name + ']' : '') }}",
         "options": {
           "systemMessage": "Eres un asistente de investigación. Si el usuario te pide buscar algo, usa la herramienta 'Bing Search'. Si te da una URL o te pide analizar una página, usa la herramienta 'Scraper'. Si solo saluda, responde amablemente sin usar herramientas.",
           "maxIterations": 5
@@ -21,7 +21,7 @@
     },
     {
       "parameters": {
-        "model": "={{ $('Webhook').first().json.body.model || 'qwen2.5:3b' }}",
+        "model": "={{ $('Webhook').first().json.body.model || 'qwen2.5:7b' }}",
         "options": {
           "keepAlive": "30m",
           "numCtx": 8192
@@ -166,7 +166,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "9029bbae-3d3b-43ca-9e5f-4fd70dd5fe96",
+  "versionId": "3cf748e7-8c08-45a0-b1d4-fb2738ecb449",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "f5d46a6517c7d5c723571815d1b00ed8a83877aef7eb80554fe420cd8ce731a0"

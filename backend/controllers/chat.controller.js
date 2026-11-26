@@ -150,7 +150,7 @@ export const sendMessage = async (req, res, next) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            message: agentInput,
+            message: content,
             sessionId: chat._id.toString(),
             model: "qwen2.5:7b",
             attachment,
