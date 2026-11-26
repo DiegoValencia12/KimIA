@@ -12,13 +12,16 @@
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
-      "position": [288, 0],
-      "id": "4c93e891-4f8a-45c7-b574-bdc489f5c304",
+      "position": [
+        240,
+        0
+      ],
+      "id": "6d9fd00e-1666-4b63-82cf-3239d38aed9f",
       "name": "AI Agent"
     },
     {
       "parameters": {
-        "model": "={{ $('Webhook').first().json.body.model || 'qwen2.5:7b' }}",
+        "model": "={{ $('Webhook').first().json.body.model || 'qwen2.5:3b' }}",
         "options": {
           "keepAlive": "30m",
           "numCtx": 8192
@@ -26,12 +29,15 @@
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
       "typeVersion": 1,
-      "position": [288, 208],
-      "id": "88fb8409-ed4a-4d39-b4be-65f6e2a209f8",
+      "position": [
+        240,
+        208
+      ],
+      "id": "125433ab-fbb6-4c31-a0c1-09aa00f05a41",
       "name": "Ollama Chat Model",
       "credentials": {
         "ollamaApi": {
-          "id": "Bd3PNaZjFsBKMwpN",
+          "id": "jJqmchwpiTQGJ5d2",
           "name": "Ollama account"
         }
       }
@@ -43,8 +49,11 @@
       },
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.4,
-      "position": [384, 368],
-      "id": "9f6e0782-4c65-4dfa-9ed1-d88ce16c3af2",
+      "position": [
+        336,
+        368
+      ],
+      "id": "721119cc-f034-4af8-86e3-b0be90bc4755",
       "name": "Simple Memory"
     },
     {
@@ -56,21 +65,27 @@
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.2,
-      "position": [48, 0],
-      "id": "12baf21e-2165-47db-ba93-e29ba878f969",
+      "position": [
+        0,
+        0
+      ],
+      "id": "d60cbbae-5148-4c1d-889a-99202a493b4a",
       "name": "Webhook",
       "webhookId": "95062f5c-397e-4da9-9f8a-82f5ee6d8ae0"
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={ \"response\": $json.output || $json.content || $json.text || \"Sin respuesta\" }",
+        "responseBody": "={{ { \"response\": $json.output || $json.content || $json.text || \"Sin respuesta\" } }}",
         "options": {}
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [656, 0],
-      "id": "6ec2be75-76ff-4b19-8ffd-84d455f10d96",
+      "position": [
+        608,
+        0
+      ],
+      "id": "5821b2a9-169c-4aa2-a9b1-f4bed6c1fb1e",
       "name": "Respond to Webhook"
     },
     {
@@ -80,8 +95,11 @@
       },
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.4,
-      "position": [432, 224],
-      "id": "00dfa2fa-5086-4890-b2b4-e2153cf23261",
+      "position": [
+        384,
+        224
+      ],
+      "id": "02bb352c-9699-4f19-9741-d9e35d8c4c5d",
       "name": "MCP Client"
     }
   ],
@@ -143,17 +161,17 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "23574f52-c01a-43ee-a92f-2f4d6f423e27",
+  "versionId": "9029bbae-3d3b-43ca-9e5f-4fd70dd5fe96",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "78fe0c9fb5bcc9f96ebe72655015726e92ac151385f4cfa6f8eaa49e99404346"
+    "instanceId": "f5d46a6517c7d5c723571815d1b00ed8a83877aef7eb80554fe420cd8ce731a0"
   },
   "nodeGroups": [],
-  "id": "TIa5zbfPRi5S4eVL",
+  "id": "Um6k47wBrCnjQS4I",
   "tags": []
 }
